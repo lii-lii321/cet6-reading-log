@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#e8622c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>真题阅读打卡</title>
 <style>
   :root{
@@ -113,6 +117,34 @@
   .dist-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   .dist-grid .card{margin-bottom:0;}
   @media (max-width:820px){ .dist-grid{grid-template-columns:1fr;} .stat-cards{grid-template-columns:1fr 1fr;} }
+  /* ===== 覆盖矩阵 ===== */
+  .matrix-wrap{overflow-x:auto;padding-bottom:4px;}
+  .mx{min-width:520px;display:grid;gap:4px;}
+  .mx-h{font-size:11.5px;color:var(--muted);text-align:center;padding:2px 0;}
+  .mx-h.rowhead{text-align:left;padding-left:2px;}
+  .mx-label{font-size:12px;color:#6b645a;display:flex;align-items:center;padding-left:2px;}
+  .mx-cell{
+    height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+    font-size:11.5px;font-weight:600;cursor:pointer;transition:transform .1s;
+  }
+  .mx-cell:hover{transform:scale(1.12);}
+  .mx-cell.c0{background:#f5efe4;color:#c9c0b2;}
+  .mx-cell.c1{background:#fdeee4;color:var(--primary-deep);}
+  .mx-cell.c2{background:#f6c39c;color:#7a3a12;}
+  .mx-cell.c3{background:var(--primary);color:#fff;}
+  .mx-total{font-size:11.5px;color:var(--muted);display:flex;align-items:center;justify-content:center;}
+  .matrix-legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted);}
+  .matrix-legend .sw{width:16px;height:12px;border-radius:4px;display:inline-block;}
+  /* ===== 徽章 ===== */
+  .badges{display:flex;flex-wrap:wrap;gap:10px;}
+  .badge{
+    display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;
+    background:var(--primary-soft);color:var(--primary-deep);font-size:13px;font-weight:600;
+  }
+  .badge .bi{font-size:15px;}
+  .badge.locked{background:#f2ece1;color:#b3a996;font-weight:400;}
+  /* ===== 速度提示 ===== */
+  .speed-hint{font-size:13px;color:var(--muted);padding:9px 2px;}
   /* ===== 记录卡片 ===== */
   .rec-card{
     background:var(--card);border:1px solid var(--border);border-radius:12px;
@@ -167,7 +199,7 @@
     border-radius:999px;font-size:10.5px;padding:1px 6px;font-weight:600;
   }
   /* ===== 统计 ===== */
-  .stat-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;}
+  .stat-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;}
   .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;text-align:center;}
   .stat-num{font-size:26px;font-weight:700;color:var(--primary-deep);}
   .stat-lab{font-size:12.5px;color:var(--muted);margin-top:4px;}
@@ -281,6 +313,22 @@
           <label>体裁</label>
           <select id="fGenre"></select>
         </div>
+        <div class="field">
+          <label>生词数（选填）</label>
+          <input type="number" id="fNewWords" min="0" placeholder="">
+        </div>
+        <div class="field">
+          <label>错题数（选填）</label>
+          <input type="number" id="fWrong" min="0" placeholder="">
+        </div>
+        <div class="field">
+          <label>用时 · 分钟（选填）</label>
+          <input type="number" id="fMinutes" min="0" placeholder="">
+        </div>
+        <div class="field">
+          <label>阅读速度</label>
+          <div class="speed-hint" id="speedHint">填词数和用时后自动计算</div>
+        </div>
         <div class="field span2">
           <label>文章标题 / 来源（选填）</label>
           <input type="text" id="fTitle" placeholder="如 Better Late Than Never…（time.com）">
@@ -357,6 +405,11 @@
   <section id="page-stats">
     <div class="stat-cards" id="statCards"></div>
     <div class="card">
+      <h3 class="card-title">题库覆盖矩阵 <span class="muted" style="font-size:12px;font-weight:400">· 六级历年场次 × 套数，颜色越深读得越多，点格子可查看对应记录</span></h3>
+      <div class="matrix-wrap"><div class="mx" id="matrix"></div></div>
+      <div class="matrix-legend" id="matrixLegend"></div>
+    </div>
+    <div class="card">
       <h3 class="card-title">最近 14 天打卡篇数</h3>
       <div class="chart" id="chart14"></div>
     </div>
@@ -369,6 +422,10 @@
         <h3 class="card-title">体裁分布</h3>
         <div id="genreDist"></div>
       </div>
+    </div>
+    <div class="card">
+      <h3 class="card-title">里程碑</h3>
+      <div class="badges" id="badges"></div>
     </div>
   </section>
 
@@ -401,8 +458,9 @@
     <div class="card">
       <h3 class="card-title">关于</h3>
       <div class="muted" style="line-height:2;font-size:13px">
-        真题阅读打卡 · 本地桌面小工具，完全离线使用。<br>
-        配套的懒笔记题库共 593 篇真题文章，读完一篇回来点「＋ 记录一篇」即可。
+        真题阅读打卡 · 本地小工具，完全离线使用，数据不上传。<br>
+        线上版（可安装为桌面 / 手机应用）：<a href="https://lii-lii321.github.io/cet6-reading-log/" target="_blank" style="color:var(--primary-deep)">lii-lii321.github.io/cet6-reading-log</a><br>
+        安装方法：用 Edge / Chrome 打开线上版，点地址栏右侧的「安装」图标即可；不同设备数据独立，换设备时用备份文件迁移。
       </div>
     </div>
   </section>
@@ -547,6 +605,10 @@ function recCardHTML(r){
   if (r.exam) metas.push(esc(r.exam));
   if (r.set) metas.push('第'+esc(r.set)+'套');
   if (r.words) metas.push(r.words + ' 词');
+  if (r.newWords) metas.push('生词 ' + r.newWords);
+  if (r.wrong) metas.push('错题 ' + r.wrong);
+  if (r.minutes) metas.push(r.minutes + ' 分钟');
+  if (r.words && r.minutes) metas.push(Math.round(r.words / r.minutes) + ' 词/分');
   let html = '<div class="rec-card" data-id="'+r.id+'">'
     + '<div class="rec-main">'
     + '<div class="rec-line1"><span class="rec-part">'+esc(r.part || '（未填 Part）')+'</span>'+tags.join('')+'</div>'
@@ -583,7 +645,7 @@ function renderFilters(){
 function renderHistory(){
   const q = ui.filter.q.trim().toLowerCase();
   let list = sortedRecords();
-  if (q) list = list.filter(r=> ((r.part||'')+' '+(r.title||'')+' '+(r.note||'')+' '+(r.exam||'')).toLowerCase().includes(q));
+  if (q) list = list.filter(r=> ((r.part||'')+' '+(r.title||'')+' '+(r.note||'')+' '+(r.exam||'')+' '+(r.set?'第'+r.set+'套':'')).toLowerCase().includes(q));
   if (ui.filter.type) list = list.filter(r=>r.type===ui.filter.type);
   if (ui.filter.level) list = list.filter(r=>r.level===ui.filter.level);
   if (ui.filter.ym) list = list.filter(r=>r.exam===ui.filter.ym);
@@ -649,15 +711,25 @@ function renderCalendar(){
 /* ---------- 统计 ---------- */
 function renderStats(){
   const uniq = uniqueArticleCount();
+  const minSumAll = records.reduce((s,r)=> s + (+r.minutes || 0), 0);
+  const wpmRecs = records.filter(r=> r.words && r.minutes);
+  const wpmWords = wpmRecs.reduce((s,r)=> s + r.words, 0);
+  const wpmMins = wpmRecs.reduce((s,r)=> s + (+r.minutes || 0), 0);
+  const speed = wpmMins > 0 ? Math.round(wpmWords / wpmMins) : null;
   const cards = [
     [records.length, '累计打卡次数'],
     [uniq, '精读不同文章'],
     [totalWords().toLocaleString(), '累计阅读词数'],
     [activeDays(), '坚持天数'],
+    [minSumAll ? (minSumAll/60).toFixed(1)+' 小时' : '—', '累计阅读用时'],
+    [speed != null ? speed + ' 词/分' : '—', '平均阅读速度'],
   ];
   $('#statCards').innerHTML = cards.map(c=>
     '<div class="stat-card"><div class="stat-num">'+c[0]+'</div><div class="stat-lab">'+c[1]+'</div></div>'
   ).join('');
+
+  renderMatrix();
+  renderBadges();
 
   // 最近14天
   const days = [];
@@ -696,6 +768,83 @@ function renderStats(){
   $('#genreDist').innerHTML = distHTML(gc);
 }
 
+/* ---------- 覆盖矩阵 ---------- */
+function ymKey(s){
+  const m = String(s).match(/(\d{4})\s*年\s*(\d{1,2})\s*月/);
+  return m ? (+m[1]) * 12 + (+m[2]) : -1;
+}
+function renderMatrix(){
+  const el = $('#matrix');
+  if (!records.length){
+    el.innerHTML = '';
+    $('#matrixLegend').innerHTML = '<span>还没有打卡记录，读完第一篇后这里会点亮你的题库地图。</span>';
+    return;
+  }
+  const now = new Date();
+  const curKey = now.getFullYear() * 12 + now.getMonth() + 1;
+  const expected = [];
+  for (let y = 2012; y <= now.getFullYear(); y++){
+    [6, 12].forEach(m=>{ if (y * 12 + m <= curKey) expected.push(y + '年' + m + '月'); });
+  }
+  const extra = Array.from(new Set(records.map(r=>r.exam).filter(e=> e && expected.indexOf(e) < 0)));
+  const sessions = expected.concat(extra).sort((a,b)=> ymKey(b) - ymKey(a));
+  const sets = ['1','2','3'];
+  const hasOther = records.some(r=> sets.indexOf(r.set) < 0);
+  const cols = hasOther ? sets.concat(['']) : sets;
+  el.style.gridTemplateColumns = '92px repeat(' + cols.length + ', 1fr) 52px';
+
+  let html = '<div class="mx-h rowhead">场次</div>'
+    + cols.map(s=> '<div class="mx-h">' + (s ? '第'+s+'套' : '其他') + '</div>').join('')
+    + '<div class="mx-h">小计</div>';
+  let coveredSessions = 0, coveredSets = 0;
+  sessions.forEach(ym=>{
+    const list = records.filter(r=> r.exam === ym);
+    if (!list.length) return;   // 还没碰过的场次不显示，避免空白占满一屏
+    coveredSessions++;
+    let rowHtml = '<div class="mx-label">'+esc(ym)+'</div>';
+    let rowTotal = 0;
+    cols.forEach(s=>{
+      const n = list.filter(r=> (s ? r.set === s : sets.indexOf(r.set) < 0)).length;
+      rowTotal += n;
+      if (n) coveredSets++;
+      const cls = n === 0 ? 'c0' : (n < 3 ? 'c1' : (n < 6 ? 'c2' : 'c3'));
+      const parts = list.filter(r=> (s ? r.set === s : sets.indexOf(r.set) < 0))
+        .map(r=> '· ' + (r.part || '（未填 Part）') + (r.type ? '｜' + r.type : '')).join('\n');
+      rowHtml += '<div class="mx-cell '+cls+'" data-ym="'+esc(ym)+'" data-set="'+(s||'')+'"'
+        + ' title="'+esc(ym)+(s ? ' · 第'+s+'套' : ' · 其他套')+'：已读 '+n+' 篇'
+        + (parts ? '\n'+esc(parts) : '')+'">'+(n || '·')+'</div>';
+    });
+    rowHtml += '<div class="mx-total">'+rowTotal+'</div>';
+    html += rowHtml;
+  });
+  el.innerHTML = html;
+  const totalSets = sessions.length * (hasOther ? 4 : 3);
+  $('#matrixLegend').innerHTML =
+    '<span class="sw c0"></span>未读 <span class="sw c1"></span>1-2 篇 <span class="sw c2"></span>3-5 篇 <span class="sw c3"></span>6 篇以上'
+    + '<span style="margin-left:auto">已覆盖 <b>'+coveredSessions+'</b> 个场次 · <b>'+coveredSets+'</b> / '+totalSets+' 套</span>';
+}
+
+/* ---------- 里程碑 ---------- */
+function renderBadges(){
+  const uniq = uniqueArticleCount();
+  const st = streak();
+  const w = totalWords();
+  const defs = [
+    ['📖', '精读 10 篇', uniq >= 10, '当前 ' + uniq + ' 篇'],
+    ['📚', '精读 50 篇', uniq >= 50, '当前 ' + uniq + ' 篇'],
+    ['🏆', '精读 100 篇', uniq >= 100, '当前 ' + uniq + ' 篇'],
+    ['👑', '精读 200 篇', uniq >= 200, '当前 ' + uniq + ' 篇'],
+    ['🔥', '连续 7 天', st >= 7, '当前连续 ' + st + ' 天'],
+    ['⚡', '连续 30 天', st >= 30, '当前连续 ' + st + ' 天'],
+    ['🧠', '累计 1 万词', w >= 10000, '当前 ' + w.toLocaleString() + ' 词'],
+    ['💎', '累计 5 万词', w >= 50000, '当前 ' + w.toLocaleString() + ' 词'],
+  ];
+  $('#badges').innerHTML = defs.map(d=>
+    '<div class="badge'+(d[2] ? '' : ' locked')+'" title="'+esc(d[3])+'">'
+    + '<span class="bi">'+(d[2] ? d[0] : '🔒')+'</span>' + d[1] + '</div>'
+  ).join('');
+}
+
 /* ================= 表单 ================= */
 function fillTypeSelects(){
   $('#fType').innerHTML = TYPES.map(t=>'<option>'+t+'</option>').join('');
@@ -722,6 +871,9 @@ function openForm(record){
     $('#fLevel').value = record.level || '';
     $('#fWords').value = record.words || '';
     $('#fGenre').value = record.genre || '';
+    $('#fNewWords').value = record.newWords == null ? '' : record.newWords;
+    $('#fWrong').value = record.wrong == null ? '' : record.wrong;
+    $('#fMinutes').value = record.minutes == null ? '' : record.minutes;
     $('#fTitle').value = record.title || '';
     $('#fNote').value = record.note || '';
     $('#btnCancel').hidden = false;
@@ -737,6 +889,9 @@ function openForm(record){
     $('#fLevel').value = c.level || '';
     $('#fGenre').value = c.genre || '';
     $('#fWords').value = '';
+    $('#fNewWords').value = '';
+    $('#fWrong').value = '';
+    $('#fMinutes').value = '';
     $('#fTitle').value = '';
     $('#fNote').value = '';
     $('#btnCancel').hidden = true;
@@ -757,6 +912,9 @@ function collectForm(){
     level: $('#fLevel').value,
     words: $('#fWords').value ? +$('#fWords').value : null,
     genre: $('#fGenre').value,
+    newWords: $('#fNewWords').value ? +$('#fNewWords').value : null,
+    wrong: $('#fWrong').value ? +$('#fWrong').value : null,
+    minutes: $('#fMinutes').value ? +$('#fMinutes').value : null,
     title: $('#fTitle').value.trim(),
     note: $('#fNote').value.trim(),
   };
@@ -779,6 +937,7 @@ function submitForm(keepOpen){
     saveFormCtx(); save();
     if (keepOpen){
       $('#fPart').value = ''; $('#fWords').value = ''; $('#fTitle').value = ''; $('#fNote').value = '';
+      $('#fNewWords').value = ''; $('#fWrong').value = ''; $('#fMinutes').value = '';
       $('#fDate').value = todayStr();
       toast('已保存 ✓ 继续记录下一篇');
       $('#fPart').focus();
@@ -1064,6 +1223,30 @@ function bind(){
     renderCalendar();
   });
 
+  // 覆盖矩阵点击 → 跳转历史并按该场次筛选
+  $('#matrix').addEventListener('click', e=>{
+    const cell = e.target.closest('.mx-cell');
+    if (!cell || !cell.dataset.ym) return;
+    const ym = cell.dataset.ym;
+    const s = cell.dataset.set;
+    ui.filter.ym = ym;
+    ui.filter.q = s ? ('第' + s + '套') : '';
+    switchTab('history');
+    $('#fq').value = ui.filter.q;
+    $('#fYmFilter').value = ym;
+    renderHistory();
+    toast('已筛选 ' + ym + (s ? ' · 第' + s + '套' : ''));
+    window.scrollTo({top:0});
+  });
+
+  // 阅读速度实时计算
+  const updSpeed = ()=>{
+    const w = +$('#fWords').value, m = +$('#fMinutes').value;
+    $('#speedHint').textContent = (w > 0 && m > 0) ? ('≈ ' + Math.round(w / m) + ' 词/分') : '填词数和用时后自动计算';
+  };
+  $('#fWords').addEventListener('input', updSpeed);
+  $('#fMinutes').addEventListener('input', updSpeed);
+
   // 设置
   $('#btnSaveSet').addEventListener('click', ()=>{
     const g = +$('#sGoal').value, tt = +$('#sTotal').value;
@@ -1095,6 +1278,10 @@ function init(){
   $('#sTotal').value = settings.total;
   bind();
   renderAll();
+  // PWA：仅在 http(s) 环境注册（file:// 打开时跳过）
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+    try { navigator.serviceWorker.register('sw.js').catch(function(){}); } catch(e){}
+  }
 }
 init();
 </script>
