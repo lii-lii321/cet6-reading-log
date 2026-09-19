@@ -1,0 +1,7 @@
+# 本地导出的备份文件不要提交
+*备份*.json
+*backup*.json
+
+# 系统杂项
+Thumbs.db
+desktop.ini
