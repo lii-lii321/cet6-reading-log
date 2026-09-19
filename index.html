@@ -145,6 +145,30 @@
   .badge.locked{background:#f2ece1;color:#b3a996;font-weight:400;}
   /* ===== 速度提示 ===== */
   .speed-hint{font-size:13px;color:var(--muted);padding:9px 2px;}
+  /* ===== 复习提醒 ===== */
+  .review-item{
+    display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);
+    border-radius:10px;margin-bottom:8px;font-size:13px;background:#fffdf9;
+  }
+  .review-item .ri-main{flex:1;min-width:0;}
+  .review-item .ri-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  /* ===== 本周小结 ===== */
+  .wk{display:flex;gap:10px;}
+  .wk-item{flex:1;text-align:center;background:#fffdf9;border:1px solid var(--border);border-radius:10px;padding:13px 6px;}
+  .wk-num{font-size:22px;font-weight:700;color:var(--primary-deep);}
+  .wk-lab{font-size:12px;color:var(--muted);margin-top:3px;}
+  .wk-delta{font-size:11.5px;margin-top:5px;}
+  .wk-delta.up{color:var(--ok);}
+  .wk-delta.down{color:#c2453a;}
+  .wk-delta.flat{color:var(--muted);}
+  /* ===== 质量分析表 ===== */
+  .qtable{width:100%;border-collapse:collapse;font-size:13px;}
+  .qtable th{text-align:right;color:var(--muted);font-weight:400;padding:6px 8px;border-bottom:1px solid var(--border);font-size:12px;white-space:nowrap;}
+  .qtable td{text-align:right;padding:8px;border-bottom:1px dashed var(--border);white-space:nowrap;}
+  .qtable th:first-child,.qtable td:first-child{text-align:left;}
+  .qtable tr:last-child td{border-bottom:none;}
+  .title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+  .title-row h3{margin-bottom:0;}
   /* ===== 记录卡片 ===== */
   .rec-card{
     background:var(--card);border:1px solid var(--border);border-radius:12px;
@@ -374,6 +398,11 @@
       </div>
     </div>
 
+    <div class="card" id="reviewCard" hidden>
+      <h3 class="card-title">🔁 复习提醒 <span class="muted" style="font-size:12px;font-weight:400">· 精读后按 7 / 14 / 30 天间隔重读，记得更牢（第 4 遍起视为掌握）</span></h3>
+      <div id="reviewList"></div>
+    </div>
+
     <div id="todayList"></div>
   </section>
 
@@ -405,6 +434,13 @@
   <section id="page-stats">
     <div class="stat-cards" id="statCards"></div>
     <div class="card">
+      <div class="title-row">
+        <h3 class="card-title">本周小结 <span class="muted" style="font-size:12px;font-weight:400">· 近 7 天 vs 上周</span></h3>
+        <button class="btn sm primary" id="btnShare">🖼 生成打卡分享图</button>
+      </div>
+      <div class="wk" id="weekCards"></div>
+    </div>
+    <div class="card">
       <h3 class="card-title">题库覆盖矩阵 <span class="muted" style="font-size:12px;font-weight:400">· 六级历年场次 × 套数，颜色越深读得越多，点格子可查看对应记录</span></h3>
       <div class="matrix-wrap"><div class="mx" id="matrix"></div></div>
       <div class="matrix-legend" id="matrixLegend"></div>
@@ -412,6 +448,10 @@
     <div class="card">
       <h3 class="card-title">最近 14 天打卡篇数</h3>
       <div class="chart" id="chart14"></div>
+    </div>
+    <div class="card">
+      <h3 class="card-title">质量分析 <span class="muted" style="font-size:12px;font-weight:400">· 按题型平均，帮你找到弱项</span></h3>
+      <div id="qualityTable"></div>
     </div>
     <div class="dist-grid">
       <div class="card">
@@ -573,6 +613,7 @@ function activeDays(){ return new Set(records.map(r=>r.date)).size; }
 function renderAll(){
   renderHero();
   renderBackupBanner();
+  renderReview();
   renderTodayList();
   renderHistory();
   renderCalendar();
@@ -729,6 +770,8 @@ function renderStats(){
   ).join('');
 
   renderMatrix();
+  renderWeekly();
+  renderQuality();
   renderBadges();
 
   // 最近14天
@@ -766,6 +809,61 @@ function renderStats(){
   const gc = {};
   records.forEach(r=>{ const k = r.genre || '未填体裁'; gc[k] = (gc[k]||0)+1; });
   $('#genreDist').innerHTML = distHTML(gc);
+}
+
+/* ---------- 本周小结 ---------- */
+function renderWeekly(){
+  const dayN = n => { const d = new Date(); d.setDate(d.getDate()-n); return fmtD(d); };
+  const thisW = records.filter(r=> r.date >= dayN(6) && r.date <= dayN(0));
+  const lastW = records.filter(r=> r.date >= dayN(13) && r.date <= dayN(7));
+  const sum = (arr,f)=> arr.reduce((s,r)=> s + (+f(r) || 0), 0);
+  const items = [
+    ['篇数', thisW.length, lastW.length, false],
+    ['词数', sum(thisW,r=>r.words), sum(lastW,r=>r.words), true],
+    ['用时', sum(thisW,r=>r.minutes), sum(lastW,r=>r.minutes), true],
+    ['打卡天数', new Set(thisW.map(r=>r.date)).size, new Set(lastW.map(r=>r.date)).size, false],
+  ];
+  $('#weekCards').innerHTML = items.map(([lab, a, b, fmt])=>{
+    const delta = a - b;
+    const cls = delta > 0 ? 'up' : (delta < 0 ? 'down' : 'flat');
+    const arrow = delta > 0 ? '▲' : (delta < 0 ? '▼' : '—');
+    const dv = Math.abs(delta);
+    return '<div class="wk-item"><div class="wk-num">'+(fmt ? a.toLocaleString() : a)+'</div>'
+      + '<div class="wk-lab">本周'+lab+'</div>'
+      + '<div class="wk-delta '+cls+'">'+arrow+' 较上周 '+(fmt ? dv.toLocaleString() : dv)+'</div></div>';
+  }).join('');
+}
+
+/* ---------- 质量分析 ---------- */
+function renderQuality(){
+  const el = $('#qualityTable');
+  const byType = {};
+  records.forEach(r=>{
+    const k = r.type || '其他';
+    (byType[k] = byType[k] || []).push(r);
+  });
+  const rows = Object.entries(byType).map(([k, list])=>{
+    const avg = f=>{
+      const v = list.filter(r=> r[f] != null);
+      return v.length ? v.reduce((s,r)=> s + (+r[f]), 0) / v.length : null;
+    };
+    const wpmV = list.filter(r=> r.words && r.minutes);
+    return {
+      k, n: list.length,
+      mins: avg('minutes'),
+      wpm: wpmV.length ? Math.round(wpmV.reduce((s,r)=> s + r.words / r.minutes, 0) / wpmV.length) : null,
+      wrong: avg('wrong'),
+      nw: avg('newWords'),
+    };
+  }).sort((a,b)=> b.n - a.n);
+  if (!rows.length){ el.innerHTML = '<div class="empty">还没有数据</div>'; return; }
+  const fmt = v => v == null ? '—' : (Number.isInteger(v) ? v : v.toFixed(1));
+  el.innerHTML = '<table class="qtable"><thead><tr>'
+    + '<th>题型</th><th>篇数</th><th>平均用时</th><th>平均速度</th><th>平均错题</th><th>平均生词</th>'
+    + '</tr></thead><tbody>'
+    + rows.map(r=> '<tr><td>'+esc(r.k)+'</td><td>'+r.n+'</td><td>'+(r.mins==null?'—':fmt(r.mins)+' 分')+'</td>'
+      + '<td>'+(r.wpm==null?'—':r.wpm+' 词/分')+'</td><td>'+fmt(r.wrong)+'</td><td>'+fmt(r.nw)+'</td></tr>').join('')
+    + '</tbody></table>';
 }
 
 /* ---------- 覆盖矩阵 ---------- */
@@ -1126,6 +1224,53 @@ function confirmBulk(){
   toast('已导入 ' + okItems.length + ' 条记录（' + dateCN(date) + '）');
 }
 
+/* ================= 复习提醒 ================= */
+function addDays(dateStr, n){
+  const d = parseD(dateStr);
+  d.setDate(d.getDate() + n);
+  return fmtD(d);
+}
+function reviewInfo(){
+  const map = {};
+  records.forEach(r=>{
+    const k = articleKey(r);
+    if (!map[k]) map[k] = [];
+    map[k].push(r.date);
+  });
+  const today = todayStr();
+  const due = [];
+  Object.entries(map).forEach(([k, dates])=>{
+    if (dates.length >= 4) return;            // 读满 4 遍视为已掌握
+    dates.sort();
+    const last = dates[dates.length - 1];
+    const interval = [7, 14, 30][dates.length - 1];
+    if (addDays(last, interval) > today) return;
+    const sample = records.find(r=>articleKey(r)===k);
+    due.push({
+      key: k, last, stage: dates.length,
+      days: Math.round((parseD(today) - parseD(last)) / 86400000),
+      sample,
+    });
+  });
+  due.sort((a,b)=> b.days - a.days);
+  return due;
+}
+function renderReview(){
+  const due = reviewInfo();
+  const card = $('#reviewCard');
+  if (!due.length){ card.hidden = true; return; }
+  card.hidden = false;
+  $('#reviewList').innerHTML = due.slice(0,6).map(d=>{
+    const r = d.sample;
+    return '<div class="review-item" data-key="'+esc(d.key)+'">'
+      + '<div class="ri-main"><b>'+esc(r.part || '（未填 Part）')+'</b>'
+      + '<div class="ri-sub">'+esc(r.exam||'')+(r.set ? ' · 第'+esc(r.set)+'套' : '')
+      + ' · 上次阅读 '+d.days+' 天前 · 这是第 '+d.stage+' 遍</div></div>'
+      + '<button class="btn sm primary" data-act="reread">已重读，记一篇</button></div>';
+  }).join('')
+  + (due.length > 6 ? '<div class="muted" style="font-size:12.5px;padding:2px 4px">还有 ' + (due.length-6) + ' 篇待复习，先从最久远的开始吧</div>' : '');
+}
+
 /* ================= 备份提醒 ================= */
 const WEEK_MS = 7 * 24 * 3600 * 1000;
 function backupNeeded(){
@@ -1141,6 +1286,127 @@ function renderBackupBanner(){
     ? '上次导出备份是 ' + Math.round((Date.now() - lastE) / 86400000) + ' 天前。'
     : '你还没有导出过备份。';
   el.hidden = false;
+}
+
+/* ================= 打卡分享图 ================= */
+function generateShareImage(){
+  const W = 900, H = 1200;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const C = { bg:'#faf6ef', card:'#ffffff', primary:'#e8622c', deep:'#d5501e',
+    soft:'#fdeee4', text:'#33302c', muted:'#9a938a', border:'#efe7db', track:'#f0e6d8' };
+  const F = '"Microsoft YaHei", "PingFang SC", sans-serif';
+  const rr = (x,y,w,h,r)=>{
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  };
+  const uniq = uniqueArticleCount(), st = streak(), w = totalWords();
+  const pct = Math.min(100, uniq / settings.total * 100);
+
+  // 背景 + 头部
+  ctx.fillStyle = C.bg; ctx.fillRect(0,0,W,H);
+  const g = ctx.createLinearGradient(0,0,0,170);
+  g.addColorStop(0,'#f0854f'); g.addColorStop(1,C.primary);
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,170);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
+  ctx.font = 'bold 46px ' + F; ctx.fillText('真题阅读打卡', 60, 88);
+  ctx.globalAlpha = .92; ctx.font = '24px ' + F;
+  ctx.fillText(dateCNFull(todayStr()) + ' · 六级真题精读', 60, 132);
+  ctx.globalAlpha = 1;
+
+  // 三个大数字
+  rr(50, 210, W-100, 190, 20); ctx.fillStyle = C.card; ctx.fill();
+  const stats = [
+    [st + ' 天', '连续打卡'],
+    [String(uniq), '累计精读（篇）'],
+    [w >= 10000 ? (w/10000).toFixed(1) + ' 万' : String(w), '累计阅读（词）'],
+  ];
+  stats.forEach((s,i)=>{
+    const cx = 50 + (W-100)/6 * (2*i+1);
+    ctx.fillStyle = C.deep; ctx.font = 'bold 52px ' + F; ctx.textAlign = 'center';
+    ctx.fillText(s[0], cx, 308);
+    ctx.fillStyle = C.muted; ctx.font = '20px ' + F;
+    ctx.fillText(s[1], cx, 352);
+  });
+  ctx.textAlign = 'left';
+
+  // 最近 14 天柱状图
+  rr(50, 430, W-100, 250, 20); ctx.fillStyle = C.card; ctx.fill();
+  ctx.fillStyle = C.text; ctx.font = 'bold 26px ' + F; ctx.fillText('最近 14 天打卡', 80, 480);
+  const days = [];
+  for (let i=13;i>=0;i--){ const d = new Date(); d.setDate(d.getDate()-i); days.push(fmtD(d)); }
+  const counts = days.map(ds=>recordsOf(ds).length);
+  const maxC = Math.max(1, ...counts);
+  const bx0 = 80, bx1 = W-80, bw = (bx1-bx0)/14, bArea = 120, byBase = 620;
+  counts.forEach((n,i)=>{
+    const x = bx0 + bw*i + bw*0.18, wCol = bw*0.64;
+    const h = n ? Math.max(8, n/maxC*bArea) : 3;
+    ctx.fillStyle = n ? C.primary : C.track;
+    rr(x, byBase-h, wCol, h, 5); ctx.fill();
+    ctx.fillStyle = C.muted; ctx.font = '15px ' + F; ctx.textAlign = 'center';
+    ctx.fillText((parseD(days[i]).getMonth()+1) + '/' + parseD(days[i]).getDate(), x+wCol/2, byBase+24);
+    if (n){ ctx.fillStyle = C.deep; ctx.font = 'bold 17px ' + F; ctx.fillText(String(n), x+wCol/2, byBase-h-10); }
+  });
+  ctx.textAlign = 'left';
+
+  // 本月打卡日历
+  rr(50, 710, W-100, 330, 20); ctx.fillStyle = C.card; ctx.fill();
+  const now = new Date();
+  ctx.fillStyle = C.text; ctx.font = 'bold 26px ' + F;
+  ctx.fillText(now.getFullYear() + '年' + (now.getMonth()+1) + '月打卡日历', 80, 762);
+  const WDS2 = ['日','一','二','三','四','五','六'];
+  const cellW = (W-160)/7, cellY0 = 800, cellH = 38;
+  ctx.font = '16px ' + F;
+  WDS2.forEach((wd,i)=>{
+    ctx.fillStyle = C.muted; ctx.textAlign = 'center';
+    ctx.fillText(wd, 80 + cellW*i + cellW/2, cellY0);
+  });
+  const firstWd = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+  const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const tstr = todayStr();
+  for (let d=1; d<=dim; d++){
+    const col = (firstWd + d - 1) % 7, row = Math.floor((firstWd + d - 1) / 7);
+    const cx = 80 + cellW*col + cellW/2, cy = cellY0 + 30 + cellH*row + cellH/2;
+    const ds = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const n = recordsOf(ds).length;
+    if (n){
+      ctx.fillStyle = C.primary; ctx.beginPath();
+      ctx.arc(cx, cy, 15, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+    } else {
+      ctx.fillStyle = C.muted;
+    }
+    ctx.font = (n ? 'bold ' : '') + '15px ' + F;
+    ctx.fillText(String(d), cx, cy+5);
+    if (ds === tstr && !n){
+      ctx.strokeStyle = C.deep; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, 15, 0, Math.PI*2); ctx.stroke();
+    }
+  }
+  ctx.textAlign = 'left';
+
+  // 底部进度条
+  rr(50, 1070, W-100, 80, 20); ctx.fillStyle = C.soft; ctx.fill();
+  ctx.fillStyle = C.deep; ctx.font = 'bold 22px ' + F;
+  ctx.fillText('题库精读进度 ' + (pct >= 10 ? pct.toFixed(1) : pct.toFixed(2)) + '% · 已读 ' + uniq + ' / ' + settings.total + ' 篇', 80, 1108);
+  ctx.fillStyle = C.track; rr(80, 1120, W-160, 12, 6); ctx.fill();
+  ctx.fillStyle = C.primary; rr(80, 1120, Math.max(12, (W-160)*pct/100), 12, 6); ctx.fill();
+
+  return cv;
+}
+function downloadShareImage(){
+  const cv = generateShareImage();
+  const a = document.createElement('a');
+  a.download = '打卡分享图_' + todayStr() + '.png';
+  a.href = cv.toDataURL('image/png');
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>a.remove(), 500);
+  toast('分享图已生成，已开始下载');
 }
 
 /* ================= Toast ================= */
@@ -1185,6 +1451,10 @@ function bind(){
       if (!$('#formCard').hidden && !ui.editingId) closeForm();
       if (!$('#bulkCard').hidden) closeBulk();
     }
+    if (e.key==='Enter' && e.ctrlKey && !$('#formCard').hidden && $('#formCard').offsetParent !== null){
+      e.preventDefault();
+      submitForm(false);
+    }
   });
 
   // 列表上的编辑/删除（事件委托）
@@ -1204,6 +1474,28 @@ function bind(){
   $('#fTypeFilter').addEventListener('change', e=>{ ui.filter.type = e.target.value; renderHistory(); });
   $('#fLevelFilter').addEventListener('change', e=>{ ui.filter.level = e.target.value; renderHistory(); });
   $('#fYmFilter').addEventListener('change', e=>{ ui.filter.ym = e.target.value; renderHistory(); });
+
+  // 复习提醒：一键记录重读
+  $('#reviewList').addEventListener('click', e=>{
+    const btn = e.target.closest('button[data-act="reread"]');
+    if (!btn) return;
+    const item = e.target.closest('.review-item');
+    const info = reviewInfo().find(d=>d.key===item.dataset.key);
+    if (!info) return;
+    const r = info.sample;
+    records.push({
+      id: genId(), createdAt: new Date().toISOString(), date: todayStr(),
+      exam: r.exam, set: r.set, part: r.part, type: r.type, level: r.level,
+      words: r.words, genre: r.genre, newWords: null, wrong: null, minutes: null,
+      title: r.title, note: '重读 · 第' + (info.stage + 1) + '遍',
+    });
+    save(); renderAll();
+    toast(info.stage >= 3
+      ? '已记录重读 ✓ 这篇已读满 4 遍，视为掌握，不再提醒'
+      : '已记录重读 ✓ 下一轮复习：' + dateCN(addDays(todayStr(), [14,30,30][info.stage-1])));
+  });
+
+  $('#btnShare').addEventListener('click', downloadShareImage);
 
   // 备份提醒
   $('#btnBannerExport').addEventListener('click', ()=>{ exportData(); renderBackupBanner(); });
