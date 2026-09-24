@@ -456,6 +456,7 @@
     <div class="card filters">
       <input type="text" id="fq" placeholder="🔍 搜索 Part / 标题 / 备注…">
       <select id="fTypeFilter"><option value="">全部题型</option></select>
+      <select id="fGenreFilter"><option value="">全部体裁</option></select>
       <select id="fLevelFilter"><option value="">全部难度</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select>
       <select id="fYmFilter"><option value="">全部年月</option></select>
     </div>
@@ -618,7 +619,7 @@ const LS_FORM = 'readinglog_formctx_v1';
 const LS_WORD = 'readinglog_words_v1';
 
 const TYPES = ['听力','阅读理解（四选一）','完形填空（选词填空）','长篇阅读（段落匹配）','翻译','写作','其他'];
-const GENRES = ['议论文','说明文','记叙文','应用文','其他'];
+ const GENRES = ['议论文','说明文','对话','新闻报道','记叙文','其他'];
 const W_INT = [1, 3, 7, 21];   // 莱特纳间隔（天），box 0-3；box>=4 视为掌握
 
 let records = [];
@@ -629,7 +630,7 @@ let ui = {
   tab: 'today',
   calY: new Date().getFullYear(), calM: new Date().getMonth(),
   selDate: null,
-  filter: { q: '', type: '', ym: '' },
+  filter: { q: '', type: '', genre: '', ym: '' },
   editingId: null,
 };
 
@@ -777,18 +778,27 @@ function renderTodayList(){
 
 /* ---------- 历史 ---------- */
 function renderFilters(){
-  const tf = $('#fTypeFilter'), yf = $('#fYmFilter');
-  const keepT = tf.value, keepY = yf.value;
+  const tf = $('#fTypeFilter'), yf = $('#fYmFilter'), gf = $('#fGenreFilter');
+  const keepT = tf.value, keepY = yf.value, keepG = gf.value;
   tf.innerHTML = '<option value="">全部题型</option>' + TYPES.map(t=>'<option'+(ui.filter.type===t?' selected':'')+'>'+t+'</option>').join('');
   const yms = Array.from(new Set(records.map(r=>r.exam).filter(Boolean))).sort().reverse();
   yf.innerHTML = '<option value="">全部年月</option>' + yms.map(y=>'<option'+(ui.filter.ym===y?' selected':'')+'>'+esc(y)+'</option>').join('');
-  tf.value = keepT; yf.value = keepY;
+  // 体裁：预设分类 + 数据里实际出现过的值（含未填体裁），都能筛
+  const usedGenres = Array.from(new Set(records.map(r=>r.genre||''))).filter(Boolean).filter(g=>GENRES.indexOf(g)<0);
+  const genreOpts = [''].concat(GENRES, usedGenres, records.some(r=>!r.genre) ? ['__none__'] : []);
+  gf.innerHTML = genreOpts.map(g=>{
+    if (g === '') return '<option value=""'+(keepG===''?' selected':'')+'>全部体裁</option>';
+    if (g === '__none__') return '<option value="__none__"'+(keepG==='__none__'?' selected':'')+'>未填体裁</option>';
+    return '<option'+(keepG===g?' selected':'')+'>'+esc(g)+'</option>';
+  }).join('');
+  tf.value = keepT; yf.value = keepY; gf.value = keepG;
 }
 function renderHistory(){
   const q = ui.filter.q.trim().toLowerCase();
   let list = sortedRecords();
   if (q) list = list.filter(r=> ((r.part||'')+' '+(r.title||'')+' '+(r.note||'')+' '+(r.exam||'')+' '+(r.set?'第'+r.set+'套':'')).toLowerCase().includes(q));
   if (ui.filter.type) list = list.filter(r=>r.type===ui.filter.type);
+  if (ui.filter.genre) list = list.filter(r=> ui.filter.genre==='__none__' ? !r.genre : r.genre===ui.filter.genre);
   if (ui.filter.level) list = list.filter(r=>r.level===ui.filter.level);
   if (ui.filter.ym) list = list.filter(r=>r.exam===ui.filter.ym);
 
@@ -1719,6 +1729,7 @@ function bind(){
   $('#fq').addEventListener('input', e=>{ ui.filter.q = e.target.value; renderHistory(); });
   $('#fTypeFilter').addEventListener('change', e=>{ ui.filter.type = e.target.value; renderHistory(); });
   $('#fLevelFilter').addEventListener('change', e=>{ ui.filter.level = e.target.value; renderHistory(); });
+  $('#fGenreFilter').addEventListener('change', e=>{ ui.filter.genre = e.target.value; renderHistory(); });
   $('#fYmFilter').addEventListener('change', e=>{ ui.filter.ym = e.target.value; renderHistory(); });
 
   // 复习提醒：一键记录重读
