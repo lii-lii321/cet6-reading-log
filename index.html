@@ -573,6 +573,16 @@
       <div class="form-actions"><button class="btn primary" id="btnSaveSet">保存设置</button></div>
     </div>
     <div class="card">
+      <h3 class="card-title">数据小工具</h3>
+      <div class="set-row" style="border:none">
+        <div class="lab">批量补填体裁<small>把所有「未填体裁」的历史记录一键标记为所选体裁（适合早期导入时没选体裁的情况）</small></div>
+        <div style="display:flex;gap:8px;align-items:center;flex:0 0 auto">
+          <select id="fixGenre" style="border:1px solid var(--border);border-radius:9px;padding:7px 10px;font-family:inherit;background:var(--field);color:var(--text)"></select>
+          <button class="btn" id="btnFixGenre">补填</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
       <h3 class="card-title">数据备份</h3>
       <div class="set-row" style="border:none">
         <div class="lab">数据保存在本机浏览器中，不会上传。换电脑或清理浏览器前，请先导出备份文件。</div>
@@ -716,6 +726,7 @@ function renderAll(){
   renderReview();
   renderTodayList();
   renderVocab();
+  renderFixTool();
   renderHistory();
   renderCalendar();
   renderStats();
@@ -1527,6 +1538,25 @@ function flashAct(act){
   renderFlash();
 }
 
+/* ---------- 数据小工具：批量补填体裁 ---------- */
+function renderFixTool(){
+  const sel = $('#fixGenre');
+  if (!sel.options.length) sel.innerHTML = GENRES.map(g=>'<option>'+g+'</option>').join('');
+  const n = records.filter(r=>!r.genre).length;
+  const btn = $('#btnFixGenre');
+  btn.textContent = n ? ('补填 ' + n + ' 条') : '暂无未填';
+  btn.disabled = !n;
+}
+function fixGenre(){
+  const g = $('#fixGenre').value;
+  const list = records.filter(r=>!r.genre);
+  if (!list.length) return;
+  if (!confirm('确定把 ' + list.length + ' 条未填体裁的记录全部标记为「' + g + '」吗？')) return;
+  list.forEach(r=>{ r.genre = g; });
+  save(); renderAll();
+  toast('已把 ' + list.length + ' 条记录的体裁补填为「' + g + '」✓');
+}
+
 /* ================= 备份提醒 ================= */
 const WEEK_MS = 7 * 24 * 3600 * 1000;
 function backupNeeded(){
@@ -1788,6 +1818,9 @@ function bind(){
     save();
     applyTheme();
   });
+
+  // 数据小工具
+  $('#btnFixGenre').addEventListener('click', fixGenre);
 
   // 备份提醒
   $('#btnBannerExport').addEventListener('click', ()=>{ exportData(); renderBackupBanner(); });
