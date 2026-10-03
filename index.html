@@ -470,13 +470,14 @@
       <h3 class="card-title">📋 批量粘贴导入</h3>
       <div class="muted" style="font-size:12.5px;line-height:1.9;margin-bottom:10px">
         在懒笔记里框选文章列表 → 复制，直接粘贴到下面。每条记录占几行：考试年月 · 第 N 套 / Part / 题型 / 难度 / 词数 / 精读，前面的序号行会自动忽略。
+        补录积压时可在每条记录前单独写一行日期（如 <b>2026-06-15</b>），逐条指定打卡日期；没写的用下方「导入日期」。
         点「解析预览」确认无误后导入。
       </div>
       <div class="bulk-opts">
-        <span>导入日期：<input type="date" id="bulkDate"></span>
+        <span>导入日期（未在文本中指定时使用）：<input type="date" id="bulkDate"></span>
         <span>体裁（选填，应用到本次全部导入）：<select id="bulkGenre"></select></span>
       </div>
-      <textarea id="bulkText" rows="9" placeholder="2026 年 6 月 · 第 1 套&#10;Part III Section A&#10;完形填空（选词填空）&#10;C1&#10;279&#10;精读"></textarea>
+      <textarea id="bulkText" rows="9" placeholder="2026-06-15&#10;2026 年 6 月 · 第 1 套&#10;Part III Section A&#10;完形填空（选词填空）&#10;C1&#10;279&#10;精读&#10;2026-06-20&#10;2026 年 6 月 · 第 2 套&#10;Part II Section B&#10;长篇阅读（段落匹配）&#10;B1&#10;305&#10;精读"></textarea>
       <div class="form-actions">
         <button class="btn primary" id="btnBulkParse">解析预览</button>
         <button class="btn primary" id="btnBulkImport" disabled>导入</button>
@@ -739,6 +740,18 @@
   </div>
 </div>
 
+<div class="kbd-help" id="importPick" hidden>
+  <div class="kbd-card">
+    <h3>📥 选择导入方式</h3>
+    <div class="muted" id="importPickMsg" style="font-size:13px;line-height:1.9;margin-bottom:14px"></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn primary" id="btnImportMerge">➕ 合并导入（保留现有数据，去重合并）</button>
+      <button class="btn danger" id="btnImportOverwrite">🔄 覆盖导入（先清空现有全部数据）</button>
+      <button class="btn ghost" id="btnImportCancel">取消</button>
+    </div>
+  </div>
+</div>
+
 <datalist id="examList"></datalist>
 <datalist id="srcList"></datalist>
 <datalist id="partList">
@@ -806,6 +819,61 @@ function dateCNFull(s){ const d=parseD(s); return d.getFullYear()+'年'+(d.getMo
 const WDS = ['日','一','二','三','四','五','六'];
 function wdCN(s){ return '星期'+WDS[parseD(s).getDay()]; }
 
+/* 数据规范化：导入文件与 localStorage 中的历史脏数据统一走这里，
+   缺失/非法的 date 会让排序与日历渲染崩溃，必须从入口拦下 */
+function normDateStr(s){
+  const m = typeof s === 'string' ? s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/) : null;
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2]-1, +m[3]);
+  if (isNaN(d.getTime()) || d.getFullYear() !== +m[1] || d.getMonth() !== +m[2]-1 || d.getDate() !== +m[3]) return null;
+  return fmtD(d);
+}
+function numOrNull(v){
+  if (v == null || v === '') return null;
+  const n = +v;
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+}
+function normalizeRecord(r){
+  if (!r || typeof r !== 'object' || !r.id) return null;
+  const date = normDateStr(r.date);
+  if (!date) return null;
+  const str = v => (v == null ? '' : String(v));
+  return {
+    id: String(r.id),
+    createdAt: str(r.createdAt) || new Date().toISOString(),
+    date,
+    exam: str(r.exam), set: str(r.set), part: str(r.part),
+    type: str(r.type), level: str(r.level), genre: str(r.genre),
+    words: numOrNull(r.words), newWords: numOrNull(r.newWords),
+    wrong: numOrNull(r.wrong), minutes: numOrNull(r.minutes),
+    title: str(r.title), note: str(r.note),
+  };
+}
+function normalizeWord(w){
+  if (!w || typeof w !== 'object') return null;
+  if (typeof w.word !== 'string' || !w.word.trim()) return null;
+  if (typeof w.addedAt !== 'string' || !w.addedAt) return null;   // 无加入时间会让生词列表排序崩溃
+  const box = Math.round(+w.box);
+  return {
+    id: (w.id == null || w.id === '') ? genId() : String(w.id),
+    word: w.word,
+    meaning: w.meaning == null ? '' : String(w.meaning),
+    src: w.src == null ? '' : String(w.src),
+    box: Number.isFinite(box) && box > 0 ? Math.min(box, 4) : 0,
+    addedAt: w.addedAt,
+    lastReviewAt: (+w.lastReviewAt > 0 ? Math.round(+w.lastReviewAt) : null),
+  };
+}
+function normalizeScore(s){
+  if (!s || typeof s !== 'object') return null;
+  const date = normDateStr(s.date);
+  if (!date) return null;
+  const total = Math.round(+s.total);
+  if (!Number.isFinite(total) || total <= 0) return null;
+  const sub = v => { const n = Math.round(+v); return Number.isFinite(n) && n > 0 ? n : null; };
+  return { date, total, listen: sub(s.listen), read: sub(s.read), write: sub(s.write) };
+}
+
 function load(){
   const safeParse = (key, fallback)=>{
     try{
@@ -825,13 +893,22 @@ function load(){
   };
   corruptKeys = [];
   const r = safeParse(LS_REC, []);
-  if (Array.isArray(r)) records = r;
+  if (Array.isArray(r)){
+    records = r.map(normalizeRecord).filter(Boolean);
+    if (records.length !== r.length) console.warn('已忽略 ' + (r.length - records.length) + ' 条字段无效的打卡记录');
+  }
   const w = safeParse(LS_WORD, []);
-  if (Array.isArray(w)) words = w;
+  if (Array.isArray(w)){
+    words = w.map(normalizeWord).filter(Boolean);
+    if (words.length !== w.length) console.warn('已忽略 ' + (w.length - words.length) + ' 条字段无效的生词');
+  }
   const t = safeParse(LS_TRASH, []);
   if (Array.isArray(t)) trash = t;
   const sc = safeParse(LS_SCORE, []);
-  if (Array.isArray(sc)) scores = sc;
+  if (Array.isArray(sc)){
+    scores = sc.map(normalizeScore).filter(Boolean);
+    if (scores.length !== sc.length) console.warn('已忽略 ' + (sc.length - scores.length) + ' 条字段无效的成绩');
+  }
   scores.sort((a,b)=> b.date.localeCompare(a.date));
   // 回收站 30 天自动清理
   const cutoff = Date.now() - 30*86400000;
@@ -844,7 +921,10 @@ function load(){
       if (+s.total > 0) settings.total = +s.total;
       if (s.libName) settings.libName = String(s.libName).slice(0, 20);
       if (s.theme) settings.theme = s.theme === 'dark' ? 'dark' : 'light';
-      if (s.examDate) settings.examDate = s.examDate;
+      if (s.examDate){
+        const ed = normDateStr(s.examDate);
+        if (ed) settings.examDate = ed;   // 非法日期会让倒计时出现 NaN，宁可不显示
+      }
       if (+s.lastExportAt > 0) settings.lastExportAt = +s.lastExportAt;
       if (+s.lastPromptAt > 0) settings.lastPromptAt = +s.lastPromptAt;
     }
@@ -877,7 +957,7 @@ function genId(){ return Date.now().toString(36) + Math.random().toString(36).sl
 
 /* ================= 统计计算 ================= */
 function sortedRecords(){
-  return records.slice().sort((a,b)=> b.date.localeCompare(a.date) || (b.createdAt||'').localeCompare(a.createdAt||''));
+  return records.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.createdAt||'').localeCompare(a.createdAt||''));
 }
 function recordsOf(dateStr){ return records.filter(r=>r.date===dateStr); }
 function uniqueArticleCount(){
@@ -939,12 +1019,12 @@ function recCardHTML(r){
   const metas = [];
   if (r.exam) metas.push(esc(r.exam));
   if (r.set) metas.push('第'+esc(r.set)+'套');
-  if (r.words) metas.push(r.words + ' 词');
-  if (r.newWords) metas.push('生词 ' + r.newWords);
-  if (r.wrong) metas.push('错题 ' + r.wrong);
-  if (r.minutes) metas.push(r.minutes + ' 分钟');
+  if (r.words) metas.push(esc(r.words) + ' 词');
+  if (r.newWords) metas.push('生词 ' + esc(r.newWords));
+  if (r.wrong) metas.push('错题 ' + esc(r.wrong));
+  if (r.minutes) metas.push(esc(r.minutes) + ' 分钟');
   if (r.words && r.minutes) metas.push(Math.round(r.words / r.minutes) + ' 词/分');
-  let html = '<div class="rec-card" data-id="'+r.id+'">'
+  let html = '<div class="rec-card" data-id="'+esc(r.id)+'">'
     + '<div class="rec-main">'
     + '<div class="rec-line1"><span class="rec-part">'+esc(r.part || '（未填 Part）')+'</span>'+tags.join('')+'</div>'
     + '<div class="rec-meta">'+metas.join(' · ')+'</div>';
@@ -1220,7 +1300,7 @@ function renderScores(){
       delta = '<span class="wk-delta ' + (d > 0 ? 'up' : (d < 0 ? 'down' : 'flat')) + '" style="margin-left:8px">'
         + (d > 0 ? '▲ +' : (d < 0 ? '▼ ' : '— ')) + d + ' vs 上次</span>';
     }
-    return '<div class="witem"><div class="wi-main"><span class="ww">' + s.date + '</span> '
+    return '<div class="witem"><div class="wi-main"><span class="ww">' + esc(s.date) + '</span> '
       + '<span class="vchip">' + parts.join(' · ') + '</span>' + delta + '</div>'
       + '<div class="wi-ops"><button class="btn sm danger" data-score-idx="' + i + '" data-act="sdel">删除</button></div></div>';
   }).join('');
@@ -1432,13 +1512,15 @@ function editRecord(id){
 }
 
 /* ================= 导入导出 ================= */
-function exportData(){
-  const payload = {
+function buildBackupPayload(){
+  return {
     app: '真题阅读打卡', version: SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
     settings, records, words, scores,
   };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(buildBackupPayload(), null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = '真题阅读记录备份_' + todayStr() + '.json';
@@ -1452,69 +1534,113 @@ function exportData(){
 function importData(file){
   const reader = new FileReader();
   reader.onload = () => {
+    let data;
     try{
-      const data = JSON.parse(reader.result);
+      data = JSON.parse(reader.result);
       if (!data || !Array.isArray(data.records)) throw new Error('bad');
-      const incoming = data.records.filter(r=>r && r.id);
-      if (!incoming.length){ toast('文件里没有可导入的记录'); return; }
-      const merge = confirm('文件中共有 '+incoming.length+' 条记录。\n\n【确定】= 合并导入（与现有记录去重合并）\n【取消】= 覆盖（清空现有全部记录后导入）');
-      if (!merge){
-        if (!confirm('覆盖操作会删除现有 '+records.length+' 条记录，且无法恢复。\n确定要覆盖吗？')) return;
-        records = [];
-      }
-      let added = 0;
-      const existIds = new Set(records.map(r=>r.id));
-      incoming.forEach(r=>{
-        // 只按记录 id 去重：重读等同一文章的多次打卡是真实记录，不能按文章去重
-        if (existIds.has(r.id)) return;
-        records.push(r);
-        existIds.add(r.id);
-        added++;
-      });
-      if (data.settings && +data.settings.goal>0) settings.goal = +data.settings.goal;
-      if (data.settings && +data.settings.total>0) settings.total = +data.settings.total;
-      if (data.settings && data.settings.libName) settings.libName = String(data.settings.libName).slice(0,20);
-      if (data.settings && data.settings.examDate) settings.examDate = data.settings.examDate;
-      let addedScores = 0;
-      const incomingScores = (data.scores || []).filter(s=> s && s.date && +s.total > 0);
-      if (incomingScores.length){
-        if (!merge) scores = [];
-        const sKeys = new Set(scores.map(s=> s.date + '|' + s.total));
-        incomingScores.forEach(s=>{
-          const k = s.date + '|' + s.total;
-          if (sKeys.has(k)) return;
-          scores.push(s); sKeys.add(k); addedScores++;
-        });
-        scores.sort((a,b)=> b.date.localeCompare(a.date));
-      }
-      let addedWords = 0;
-      const incomingWords = (data.words || []).filter(w=> w && w.word);
-      if (incomingWords.length){
-        if (!merge){ words = []; }
-        const wIds = new Set(words.map(w=>w.id));
-        const wKeys = new Set(words.map(w=> w.word.toLowerCase()));
-        incomingWords.forEach(w=>{
-          if (wIds.has(w.id)) return;
-          if (merge && wKeys.has(w.word.toLowerCase())) return;
-          words.push(Object.assign({ box:0, lastReviewAt:null, src:'', meaning:'' }, w));
-          wIds.add(w.id); wKeys.add(w.word.toLowerCase());
-          addedWords++;
-        });
-      }
-      save(); renderAll();
-      toast('导入完成：新增 '+added+' 条记录、'+addedWords+' 个生词' + (addedScores ? '、'+addedScores+' 条成绩' : '') + (merge && incoming.length-added>0 ? '，跳过重复 '+(incoming.length-added)+' 条' : ''));
     }catch(e){
       alert('导入失败：文件格式不正确。请选择本应用导出的 .json 备份文件。');
+      return;
     }
+    // 逐条校验规范化：缺有效日期的记录会让排序与日历崩溃，直接跳过并计数
+    const incoming = data.records.map(normalizeRecord).filter(Boolean);
+    const incomingScores = (Array.isArray(data.scores) ? data.scores : []).map(normalizeScore).filter(Boolean);
+    const incomingWords = (Array.isArray(data.words) ? data.words : []).map(normalizeWord).filter(Boolean);
+    const badCount = data.records.length - incoming.length;
+    if (!incoming.length && !incomingWords.length && !incomingScores.length){
+      toast('文件里没有可导入的有效记录' + (badCount ? '（' + badCount + ' 条因缺少有效日期等原因被跳过）' : ''));
+      return;
+    }
+    askImportChoice({
+      recCount: incoming.length,
+      scoreCount: incomingScores.length,
+      wordCount: incomingWords.length,
+      curRecords: records.length,
+    }, mode=>{
+      if (!mode) return;              // 取消：一律中止，不改动任何数据
+      applyImport(data, incoming, incomingWords, incomingScores, mode, badCount);
+    });
   };
   reader.readAsText(file, 'utf-8');
+}
+function applyImport(data, incoming, incomingWords, incomingScores, mode, badCount){
+  const merge = mode === 'merge';
+  if (!merge){
+    // 覆盖语义：无条件清空现有全部数据（含备份中为空的生词/成绩）
+    records = []; words = []; scores = [];
+  }
+  let added = 0;
+  const existIds = new Set(records.map(r=>r.id));
+  incoming.forEach(r=>{
+    // 只按记录 id 去重：重读等同一文章的多次打卡是真实记录，不能按文章去重
+    if (existIds.has(r.id)) return;
+    records.push(r);
+    existIds.add(r.id);
+    added++;
+  });
+  if (data.settings && +data.settings.goal>0) settings.goal = +data.settings.goal;
+  if (data.settings && +data.settings.total>0) settings.total = +data.settings.total;
+  if (data.settings && data.settings.libName) settings.libName = String(data.settings.libName).slice(0,20);
+  if (data.settings && normDateStr(data.settings.examDate)) settings.examDate = normDateStr(data.settings.examDate);
+  let addedScores = 0;
+  if (merge && incomingScores.length){
+    const sKeys = new Set(scores.map(s=> s.date + '|' + s.total));
+    incomingScores.forEach(s=>{
+      const k = s.date + '|' + s.total;
+      if (sKeys.has(k)) return;
+      scores.push(s); sKeys.add(k); addedScores++;
+    });
+  } else if (!merge){
+    addedScores = incomingScores.length;
+    scores.push(...incomingScores);
+  }
+  scores.sort((a,b)=> b.date.localeCompare(a.date));
+  let addedWords = 0;
+  if (merge && incomingWords.length){
+    const wIds = new Set(words.map(w=>w.id));
+    const wKeys = new Set(words.map(w=> w.word.toLowerCase()));
+    incomingWords.forEach(w=>{
+      if (wIds.has(w.id)) return;
+      if (wKeys.has(w.word.toLowerCase())) return;
+      words.push(w);
+      wIds.add(w.id); wKeys.add(w.word.toLowerCase());
+      addedWords++;
+    });
+  } else if (!merge){
+    addedWords = incomingWords.length;
+    words.push(...incomingWords);
+  }
+  save(); renderAll();
+  const skipDup = incoming.length - added;
+  toast('导入完成：新增 ' + added + ' 条记录、' + addedWords + ' 个生词'
+    + (addedScores ? '、' + addedScores + ' 条成绩' : '')
+    + (skipDup > 0 ? '，跳过重复 ' + skipDup + ' 条' : '')
+    + (badCount ? '，' + badCount + ' 条无效记录已跳过' : ''));
+}
+
+/* 导入方式三选弹窗：合并 / 覆盖 / 取消，取消一律中止 */
+let importChoiceCb = null;
+function askImportChoice(info, cb){
+  $('#importPickMsg').innerHTML = '文件包含 <b>' + info.recCount + '</b> 条打卡记录'
+    + (info.scoreCount ? '、' + info.scoreCount + ' 条成绩' : '')
+    + (info.wordCount ? '、' + info.wordCount + ' 个生词' : '')
+    + '；当前已有 ' + info.curRecords + ' 条打卡记录。<br>'
+    + '<b style="color:#b3541e">覆盖导入</b>会先清空现有的全部打卡记录、生词与成绩，且无法恢复，请确认已有备份。';
+  importChoiceCb = cb;
+  $('#importPick').hidden = false;
+}
+function closeImportPick(mode){
+  const cb = importChoiceCb;
+  importChoiceCb = null;
+  $('#importPick').hidden = true;
+  if (cb) cb(mode || null);
 }
 
 /* ================= 批量粘贴导入 ================= */
 let bulkParsed = [];
 
 function blankItem(){
-  return { exam:'', set:'', part:'', type:'', level:'', words:null, ok:false, dup:false };
+  return { exam:'', set:'', part:'', type:'', level:'', words:null, date:null, ok:false, dup:false };
 }
 function guessType(s){
   if (s.includes('听力')) return '听力';
@@ -1529,12 +1655,21 @@ function parseBulkText(text){
   const lines = String(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
   const items = [];
   let cur = null;
+  let pendingDate = null;   // 独立日期行（如 2026-06-15）= 紧随其后的记录的打卡日期
   for (let i=0; i<lines.length; i++){
     const line = lines[i];
+    const dm = line.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+    if (dm){                       // 注意：不带「年月」字样，不会与考试年月行混淆
+      // 只记 pendingDate、不关闭当前组：组间时日期随下一个年月行生效（与组前写法语义一致），
+      // 写在最后一组之后时由下方循环结束处的回填逻辑生效
+      pendingDate = normDateStr(dm[1] + '-' + dm[2] + '-' + dm[3]);
+      continue;
+    }
     const ym = line.match(/(\d{4})\s*年\s*(\d{1,2})\s*月/);
     if (ym){                       // 考试年月行 = 新记录开始
       if (cur && (cur.exam || cur.part)) items.push(cur);
       cur = blankItem();
+      cur.date = pendingDate; pendingDate = null;
       cur.exam = ym[1] + '年' + ym[2] + '月';
       const sm = line.match(/第\s*(\d+)\s*套/);
       if (sm) cur.set = sm[1];
@@ -1556,7 +1691,10 @@ function parseBulkText(text){
     }
     // 其余行（原文精读/精读/未知内容）忽略
   }
-  if (cur && (cur.exam || cur.part)) items.push(cur);
+  if (cur && (cur.exam || cur.part)){
+    if (!cur.date && pendingDate) cur.date = pendingDate;   // 日期行写在最后一组之后时同样生效
+    items.push(cur);
+  }
   items.forEach(it=>{
     it.ok = !!(it.exam || it.part);
     it.dup = it.ok && records.some(r=>articleKey(r)===articleKey(it));
@@ -1589,8 +1727,11 @@ function renderBulkPreview(){
     + (bad ? '，' + bad + ' 条无法识别（已跳过）' : '')
     + (dupCount ? '，<b style="color:#9a7300">' + dupCount + ' 条可能已打卡过</b>（仍会导入）' : '')
     + '</div>';
+  const datedCount = okItems.filter(p=>p.date).length;
+  if (datedCount) html += '<div class="muted" style="font-size:12px;padding:0 2px 6px">其中 <b>' + datedCount + '</b> 条将使用文本中指定的日期，其余用上方「导入日期」。</div>';
   html += okItems.map(p=>{
     const bits = [];
+    if (p.date) bits.push('<span class="bp">📅 ' + esc(dateCN(p.date)) + '</span>');
     if (p.exam) bits.push(esc(p.exam) + (p.set ? ' · 第' + esc(p.set) + '套' : ''));
     if (p.part) bits.push('<span class="bp">' + esc(p.part) + '</span>');
     if (p.type) bits.push('<span class="tag">' + esc(p.type) + '</span>');
@@ -1603,9 +1744,12 @@ function renderBulkPreview(){
 function confirmBulk(){
   const okItems = bulkParsed.filter(p=>p.ok);
   if (!okItems.length) return;
-  const date = $('#bulkDate').value || todayStr();
+  const fallbackDate = $('#bulkDate').value || todayStr();
   const genre = $('#bulkGenre').value;
+  let datedCount = 0;
   okItems.forEach(p=>{
+    const date = p.date || fallbackDate;   // 文本中带日期行时逐条生效，补录多天不再挤在同一天
+    if (p.date) datedCount++;
     records.push({
       id: genId(), createdAt: new Date().toISOString(),
       date: date, exam: p.exam, set: p.set, part: p.part,
@@ -1615,7 +1759,10 @@ function confirmBulk(){
   });
   save(); renderAll();
   closeBulk();
-  toast('已导入 ' + okItems.length + ' 条记录（' + dateCN(date) + '）');
+  toast('已导入 ' + okItems.length + ' 条记录'
+    + (datedCount === okItems.length ? '（按文本指定日期）'
+      : datedCount ? '（其中 ' + datedCount + ' 条按指定日期，其余 ' + dateCN(fallbackDate) + '）'
+      : '（' + dateCN(fallbackDate) + '）'));
 }
 
 /* ================= 复习提醒 ================= */
@@ -1724,7 +1871,7 @@ function renderVocab(){
   }
   el.innerHTML = list.map(w=>{
     const boxLabel = w.box >= 4 ? '第 4 轮+' : '第 ' + (w.box+1) + ' 轮';
-    return '<div class="witem" data-id="'+w.id+'">'
+    return '<div class="witem" data-id="'+esc(w.id)+'">'
       + '<div class="wi-main"><span class="ww">'+esc(w.word)+'</span>'
       + '<button class="btn sm speak-btn" data-act="wspeak" data-word="'+esc(w.word)+'" title="朗读">🔊</button> ' + wStatusChip(w)
       + '<div class="wm">'+esc(w.meaning)+'</div>'
@@ -1850,6 +1997,8 @@ function fixGenre(){
 let bakHandle = null;          // FileSystemDirectoryHandle
 let bakWritable = false;       // 当前会话是否有写权限
 let bakError = '';
+let bakErrState = null;        // 'need-perm' | 'missing' | 'quota' | 'error'
+let bakRetryAt = 0;            // 下一次自动恢复尝试的时间戳
 
 function idbOpen(){
   return new Promise((res, rej)=>{
@@ -1905,45 +2054,84 @@ async function autoBackupPick(){
     bakHandle = dir;
     await idbSet('dir', dir);
     bakWritable = true;
+    bakErrState = null; bakError = '';
     save();                      // 立即触发一次写入
     renderAutoBakState('on');
     toast('自动备份已开启 ✓ 数据变动后将自动写入该文件夹');
   }catch(e){
-    if (e && e.name !== 'AbortError'){ bakError = e.message || String(e); renderAutoBakState('error'); }
+    if (e && e.name !== 'AbortError'){ bakError = e.message || String(e); bakErrState = 'error'; renderAutoBakState('error'); }
   }
 }
 async function autoBackupReauth(){
   if (!bakHandle){ await autoBackupPick(); return; }
   try{
     const perm = await bakHandle.requestPermission({ mode:'readwrite' });
-    if (perm === 'granted'){ bakWritable = true; bakError=''; renderAutoBakState('on'); save(); toast('授权成功 ✓'); }
+    if (perm === 'granted'){ bakWritable = true; bakErrState = null; bakError=''; renderAutoBakState('on'); save(); toast('授权成功 ✓'); }
     else renderAutoBakState('need-perm');
-  }catch(e){ renderAutoBakState('error'); }
+  }catch(e){ bakErrState = 'error'; renderAutoBakState('error'); }
 }
 async function autoBackupStop(){
-  bakHandle = null; bakWritable = false;
+  bakHandle = null; bakWritable = false; bakErrState = null;
   try{ await idbDel('dir'); }catch(e){}
   renderAutoBakState('off');
   toast('已停止自动备份（已有备份文件仍保留在文件夹中）');
 }
 async function autoBackupWrite(){
-  if (!bakHandle || !bakWritable) return;
+  if (!bakHandle) return;
+  if (!bakWritable){
+    // 写失败后不永久停摆：每隔 60 秒随 save() 自动尝试一次恢复
+    if (Date.now() < bakRetryAt) return;
+    bakRetryAt = Date.now() + 60000;
+    try{
+      if (await bakHandle.queryPermission({ mode:'readwrite' }) !== 'granted') return;
+    }catch(e){ return; }
+    bakWritable = true;
+  }
   try{
     const fh = await bakHandle.getFileHandle('readinglog-backup.json', { create:true });
     const w = await fh.createWritable();
-    await w.write(JSON.stringify({
-      app: '真题阅读打卡', version: SCHEMA_VERSION,
-      exportedAt: new Date().toISOString(),
-      settings, records, words, scores,
-    }, null, 2));
+    await w.write(JSON.stringify(buildBackupPayload(), null, 2));
     await w.close();
+    if (bakErrState) toast('自动备份已恢复 ✓');
+    bakErrState = null;
     bakError = '';
     renderAutoBakState('on', true);
   }catch(e){
     bakError = e.message || String(e);
     bakWritable = false;
-    renderAutoBakState('need-perm');
+    bakRetryAt = Date.now() + 60000;
+    const first = !bakErrState;   // 仅首次失败弹 toast，自动重试期间不再打扰
+    if (e.name === 'NotAllowedError') bakErrState = 'need-perm';
+    else if (e.name === 'NotFoundError') bakErrState = 'missing';
+    else if (e.name === 'QuotaExceededError') bakErrState = 'quota';
+    else bakErrState = 'error';
+    renderAutoBakState(bakErrState);
+    if (first){
+      const why = {
+        'need-perm': '需要重新授权',
+        'missing': '备份文件夹不存在或已被移动',
+        'quota': '磁盘空间不足',
+        'error': '写入出错：' + bakError,
+      }[bakErrState];
+      toast('⚠️ 自动备份已暂停（' + why + '）', '去处理', ()=>{
+        switchTab('settings');
+        window.scrollTo({top:0});
+      });
+    }
   }
+}
+/* 清空等破坏性操作前，把当前全部数据写成一份带时间戳的快照，避免覆盖固定备份文件 */
+async function autoBackupSnapshot(){
+  if (!bakHandle || !bakWritable) return false;
+  try{
+    const t = new Date();
+    const name = 'readinglog-backup_snapshot_' + todayStr() + '_' + pad2(t.getHours()) + pad2(t.getMinutes()) + pad2(t.getSeconds()) + '.json';
+    const fh = await bakHandle.getFileHandle(name, { create:true });
+    const w = await fh.createWritable();
+    await w.write(JSON.stringify(buildBackupPayload(), null, 2));
+    await w.close();
+    return true;
+  }catch(e){ return false; }
 }
 let bakStateTimer = null;
 function renderAutoBakState(state, justWrote){
@@ -1957,11 +2145,14 @@ function renderAutoBakState(state, justWrote){
       ? '<span class="bak-state on"><span class="dot"></span>已开启 · ' + time + ' 刚刚写入 ✓</span>'
       : '<span class="bak-state on"><span class="dot"></span>已开启 · 每次改动自动写入</span>', false],
     'need-perm': ['<span class="bak-state err"><span class="dot"></span>需要重新授权后才能继续写入</span>', true],
+    'missing': ['<span class="bak-state err"><span class="dot"></span>备份文件夹不存在或已被移动，请重新选择文件夹</span>', true],
+    'quota': ['<span class="bak-state err"><span class="dot"></span>磁盘空间不足，备份写入失败，清理空间或换个文件夹</span>', true],
     'error': ['<span class="bak-state err"><span class="dot"></span>备份出错：' + esc(bakError) + '</span>', true],
   };
   const m = map[state] || map['off'];
   el.innerHTML = m[0];
-  $('#btnAutoBak').textContent = (state === 'need-perm' || state === 'error') ? '重新授权' : '选择备份文件夹';
+  $('#btnAutoBak').textContent = state === 'need-perm' ? '重新授权'
+    : (state === 'missing' || state === 'quota' || state === 'error') ? '重新选择文件夹' : '选择备份文件夹';
   $('#btnAutoBakStop').hidden = !(state === 'on' || state === 'need-perm');
 }
 
@@ -2049,7 +2240,7 @@ function renderExamBar(){
     sugHtml = '<span class="sug">题库已全部读完，进入冲刺复习阶段 💪</span>';
   }
   bar.innerHTML = '<span class="xd">' + left + ' 天</span>'
-    + '<span class="xt">距 ' + settings.examDate.replace(/-/g, '.') + ' 考试<br>' + sugHtml + '</span>';
+    + '<span class="xt">距 ' + esc(settings.examDate).replace(/-/g, '.') + ' 考试<br>' + sugHtml + '</span>';
   const applyBtn = $('#btnApplySug');
   if (applyBtn){
     applyBtn.addEventListener('click', ()=>{
@@ -2303,6 +2494,7 @@ function bind(){
       if (!$('#formCard').hidden && !ui.editingId) closeForm();
       if (!$('#bulkCard').hidden) closeBulk();
       $('#kbdHelp').hidden = true;
+      if (!$('#importPick').hidden) closeImportPick(null);   // Esc = 取消导入
     }
     if (e.key==='Enter' && e.ctrlKey && !$('#formCard').hidden && $('#formCard').offsetParent !== null){
       e.preventDefault();
@@ -2425,7 +2617,13 @@ function bind(){
     const idx = +btn.dataset.trashIdx;
     const t = trash[idx];
     if (!t) return;
-    if (t.type === 'record') records.push(t.item); else words.push(t.item);
+    // 恢复前先规范化：升级前删入回收站的脏数据（缺有效日期/addedAt）原样放回会再次引发渲染崩溃
+    const item = t.type === 'record' ? normalizeRecord(t.item) : normalizeWord(t.item);
+    if (!item){
+      toast('⚠️ 该条目数据已失效（缺少有效字段），无法恢复；原始内容仍保留在回收站中');
+      return;
+    }
+    if (t.type === 'record') records.push(item); else words.push(item);
     trash.splice(idx, 1);
     save(); renderAll();
     toast('已恢复 ✓');
@@ -2484,7 +2682,7 @@ function bind(){
 
   // 自动备份
   $('#btnAutoBak').addEventListener('click', ()=>{
-    if (!bakHandle) autoBackupPick(); else autoBackupReauth();
+    if (!bakHandle || (bakErrState && bakErrState !== 'need-perm')) autoBackupPick(); else autoBackupReauth();
   });
   $('#btnAutoBakStop').addEventListener('click', autoBackupStop);
 
@@ -2549,13 +2747,44 @@ function bind(){
     if (e.target.files && e.target.files[0]) importData(e.target.files[0]);
     e.target.value = '';
   });
-  $('#btnClear').addEventListener('click', ()=>{
-    if (!records.length){ toast('当前没有数据'); return; }
-    if (confirm('确定清空全部 '+records.length+' 条记录吗？\n此操作不可恢复，建议先导出备份。')){
-      records = [];
-      save(); renderAll();
-      toast('已清空全部数据');
+  $('#btnImportMerge').addEventListener('click', ()=>closeImportPick('merge'));
+  $('#btnImportOverwrite').addEventListener('click', ()=>{
+    if (confirm('覆盖操作会先删除现有的全部数据（打卡记录、生词、成绩），且无法恢复。\n确定要覆盖吗？')){
+      closeImportPick('overwrite');
     }
+  });
+  $('#btnImportCancel').addEventListener('click', ()=>closeImportPick(null));
+  $('#importPick').addEventListener('click', e=>{ if (e.target === $('#importPick')) closeImportPick(null); });
+  $('#btnClear').addEventListener('click', async ()=>{
+    if (!records.length){ toast('当前没有数据'); return; }
+    const bakReady = !!(bakHandle && bakWritable);
+    const tip = (bakReady
+      ? '确定清空全部 ' + records.length + ' 条打卡记录吗？\n生词本与成绩档案不受影响。\n清空前会先在备份文件夹保存一份带时间戳的快照。'
+      : '确定清空全部 ' + records.length + ' 条打卡记录吗？\n生词本与成绩档案不受影响。\n当前未开启自动备份，清空后无法从备份文件夹找回，建议先「导出备份」。');
+    if (!confirm(tip)) return;
+    let snapSaved = false;
+    if (bakReady){
+      snapSaved = await autoBackupSnapshot();
+      if (!snapSaved){
+        toast('⚠️ 清空前快照写入失败，已取消清空。请先「导出备份」或重新授权自动备份');
+        return;
+      }
+    }
+    const backup = records;
+    records = [];
+    save(); renderAll();
+    // 撤销按 id 合并恢复：窗口期内新增的记录不会被丢弃
+    toast('已清空 ' + backup.length + ' 条打卡记录（生词与成绩保留）'
+      + (snapSaved ? '，清空前快照已存入备份文件夹' : ''), '撤销', ()=>{
+      const existIds = new Set(records.map(r=>r.id));
+      let restored = 0;
+      backup.forEach(r=>{
+        if (existIds.has(r.id)) return;
+        records.push(r); existIds.add(r.id); restored++;
+      });
+      save(); renderAll();
+      toast('已恢复 ' + restored + ' 条记录 ✓');
+    });
   });
 }
 
