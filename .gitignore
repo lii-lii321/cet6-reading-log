@@ -5,6 +5,8 @@
 # 工具缓存
 .mimosa/
 .video_agent/
+.v2c/
+.video_agent/
 
 # 系统杂项
 Thumbs.db
