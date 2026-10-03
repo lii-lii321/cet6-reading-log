@@ -2,6 +2,10 @@
 *备份*.json
 *backup*.json
 
+# 工具缓存
+.mimosa/
+.video_agent/
+
 # 系统杂项
 Thumbs.db
 desktop.ini
