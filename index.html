@@ -293,9 +293,56 @@
     position:fixed;right:24px;bottom:24px;background:#3a352e;color:#fff;
     padding:11px 18px;border-radius:11px;font-size:13.5px;opacity:0;pointer-events:none;
     transition:opacity .25s, transform .25s; transform:translateY(8px); z-index:99;
-    box-shadow:0 6px 20px rgba(0,0,0,.25); max-width:320px;
+    box-shadow:0 6px 20px rgba(0,0,0,.25); max-width:360px;
+    display:flex;align-items:center;gap:12px;
   }
   #toast.show{opacity:1;transform:translateY(0);}
+  #toast .t-act{
+    border:none;background:var(--primary);color:#fff;border-radius:7px;padding:5px 12px;
+    font-size:12.5px;cursor:pointer;font-family:inherit;font-weight:600;flex:0 0 auto;
+  }
+  #toast .t-act:hover{background:var(--primary-deep);}
+  /* ===== 今日学习清单 ===== */
+  .todo-list{display:flex;flex-direction:column;gap:9px;}
+  .todo-item{
+    display:flex;align-items:center;gap:11px;padding:10px 13px;border:1px solid var(--border);
+    border-radius:10px;background:var(--field);font-size:13.5px;cursor:pointer;
+  }
+  .todo-item:hover{border-color:#f0b58e;}
+  .todo-item .ti-ico{font-size:17px;flex:0 0 auto;}
+  .todo-item .ti-main{flex:1;min-width:0;line-height:1.5;}
+  .todo-item .ti-sub{font-size:12px;color:var(--muted);margin-top:1px;}
+  .todo-item.done{opacity:.62;}
+  .todo-item .ti-go{flex:0 0 auto;color:var(--primary-deep);font-weight:600;font-size:12.5px;}
+  .celebrate{
+    text-align:center;padding:14px 10px;font-size:14px;color:var(--ok);font-weight:600;line-height:1.9;
+  }
+  /* ===== 考试倒计时 ===== */
+  .exam-bar{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    background:linear-gradient(90deg,var(--primary-soft),transparent);
+    border:1px solid var(--border);border-radius:var(--radius);padding:12px 18px;margin-bottom:16px;
+  }
+  .exam-bar .xd{font-size:20px;font-weight:700;color:var(--primary-deep);}
+  .exam-bar .xt{flex:1;min-width:200px;font-size:13px;line-height:1.7;}
+  .exam-bar .xt .sug{color:var(--muted);}
+  .exam-bar .btn{flex:0 0 auto;}
+  /* ===== 快捷键帮助 ===== */
+  .kbd-help{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;}
+  .kbd-help[hidden]{display:none;}
+  .kbd-card{background:var(--card);border-radius:16px;padding:22px 26px;max-width:380px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+  .kbd-card h3{margin-bottom:14px;}
+  .kbd-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:13.5px;border-bottom:1px dashed var(--border);}
+  .kbd-row:last-child{border-bottom:none;}
+  kbd{
+    background:var(--track2);border:1px solid var(--border);border-bottom-width:2px;border-radius:6px;
+    padding:2px 8px;font-size:12px;font-family:Consolas,monospace;color:var(--text);
+  }
+  /* ===== 设置状态行 ===== */
+  .bak-state{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);}
+  .bak-state .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);}
+  .bak-state.on .dot{background:var(--ok);}
+  .bak-state.err .dot{background:var(--danger-text);}
   ::-webkit-scrollbar{width:10px;}
   ::-webkit-scrollbar-thumb{background:var(--scroll);border-radius:99px;border:2px solid var(--bg);}
   ::-webkit-scrollbar-track{background:transparent;}
@@ -443,6 +490,13 @@
       </div>
     </div>
 
+    <div class="exam-bar" id="examBar" hidden></div>
+
+    <div class="card" id="taskCard" hidden>
+      <h3 class="card-title">📋 今日学习清单</h3>
+      <div class="todo-list" id="taskList"></div>
+    </div>
+
     <div class="card" id="reviewCard" hidden>
       <h3 class="card-title">🔁 复习提醒 <span class="muted" style="font-size:12px;font-weight:400">· 精读后按 7 / 14 / 30 天间隔重读，记得更牢（第 4 遍起视为掌握）</span></h3>
       <div id="reviewList"></div>
@@ -559,6 +613,10 @@
     <div class="card">
       <h3 class="card-title">目标设置</h3>
       <div class="set-row">
+        <div class="lab">考试日期<small>设置后首页显示倒计时，并按剩余天数倒推每日目标</small></div>
+        <input type="date" id="sExam">
+      </div>
+      <div class="set-row">
         <div class="lab">题库名称<small>显示在首页进度条与分享图上，如改为「四级真题」「考研英语」</small></div>
         <input type="text" id="sLib" maxlength="20">
       </div>
@@ -572,6 +630,23 @@
       </div>
       <div class="form-actions"><button class="btn primary" id="btnSaveSet">保存设置</button></div>
     </div>
+    <div class="card">
+      <h3 class="card-title">自动备份 <span class="muted" style="font-size:12px;font-weight:400">· 授权一个文件夹，数据每次变动后自动写入备份文件（推荐！）</span></h3>
+      <div class="set-row" style="border:none">
+        <div class="lab" id="autoBakState"><span class="bak-state"><span class="dot"></span>检测中…</span></div>
+        <div style="display:flex;gap:8px;flex:0 0 auto">
+          <button class="btn primary sm" id="btnAutoBak">选择备份文件夹</button>
+          <button class="btn sm" id="btnAutoBakStop" hidden>停止</button>
+        </div>
+      </div>
+      <div class="muted" style="font-size:12px;line-height:1.8">开启后，打卡记录与生词会在每次改动后约 2 秒自动写入所选文件夹中的 readinglog-backup.json，彻底告别手动导出。浏览器重开后首次写入前需点一次「重新授权」。</div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">回收站 <span class="muted" id="trashCount" style="font-size:12px;font-weight:400"></span></h3>
+      <div id="trashList"></div>
+    </div>
+
     <div class="card">
       <h3 class="card-title">数据小工具</h3>
       <div class="set-row" style="border:none">
@@ -597,15 +672,31 @@
     <div class="card">
       <h3 class="card-title">关于</h3>
       <div class="muted" style="line-height:2;font-size:13px">
-        真题阅读打卡 · 本地小工具，完全离线使用，数据不上传。<br>
+        真题阅读打卡 <b>v<!--VER-->1.6.0<!--/VER--></b> · 本地小工具，完全离线使用，数据不上传。<br>
         线上版（可安装为桌面 / 手机应用）：<a href="https://lii-lii321.github.io/cet6-reading-log/" target="_blank" style="color:var(--primary-deep)">lii-lii321.github.io/cet6-reading-log</a><br>
-        安装方法：用 Edge / Chrome 打开线上版，点地址栏右侧的「安装」图标即可；不同设备数据独立，换设备时用备份文件迁移。
+        安装方法：用 Edge / Chrome 打开线上版，点地址栏右侧的「安装」图标即可；不同设备数据独立，换设备时用备份文件迁移。<br>
+        快捷键：按 <kbd>?</kbd> 查看。
       </div>
     </div>
   </section>
 </main>
 
 <div id="toast"></div>
+
+<div class="kbd-help" id="kbdHelp" hidden>
+  <div class="kbd-card">
+    <h3>⌨️ 快捷键</h3>
+    <div class="kbd-row"><span>新建记录</span><kbd>N</kbd></div>
+    <div class="kbd-row"><span>聚焦搜索</span><kbd>/</kbd></div>
+    <div class="kbd-row"><span>切换页面</span><span><kbd>1</kbd> ~ <kbd>6</kbd></span></div>
+    <div class="kbd-row"><span>保存当前表单</span><kbd>Ctrl+Enter</kbd></div>
+    <div class="kbd-row"><span>关闭面板 / 弹窗</span><kbd>Esc</kbd></div>
+    <div class="kbd-row"><span>本帮助</span><kbd>?</kbd></div>
+    <div class="form-actions" style="justify-content:center;margin-top:10px">
+      <button class="btn primary" id="btnKbdClose">知道了</button>
+    </div>
+  </div>
+</div>
 
 <datalist id="examList"></datalist>
 <datalist id="srcList"></datalist>
@@ -627,13 +718,18 @@ const LS_REC = 'readinglog_records_v1';
 const LS_SET = 'readinglog_settings_v1';
 const LS_FORM = 'readinglog_formctx_v1';
 const LS_WORD = 'readinglog_words_v1';
+const LS_TRASH = 'readinglog_trash_v1';
+const APP_VERSION = '1.6.0';
+const SCHEMA_VERSION = 2;
 
 const TYPES = ['听力','阅读理解（四选一）','完形填空（选词填空）','长篇阅读（段落匹配）','翻译','写作','其他'];
- const GENRES = ['议论文','说明文','对话','新闻报道','记叙文','其他'];
+const GENRES = ['议论文','说明文','对话','新闻报道','记叙文','其他'];
 const W_INT = [1, 3, 7, 21];   // 莱特纳间隔（天），box 0-3；box>=4 视为掌握
 
 let records = [];
 let words = [];
+let trash = [];
+let corruptKeys = [];
 let settings = { goal: 2, total: 593, libName: '六级真题' };
 let formCtx = null;
 let ui = {
@@ -662,14 +758,33 @@ const WDS = ['日','一','二','三','四','五','六'];
 function wdCN(s){ return '星期'+WDS[parseD(s).getDay()]; }
 
 function load(){
-  try{
-    const r = JSON.parse(localStorage.getItem(LS_REC) || '[]');
-    if (Array.isArray(r)) records = r;
-  }catch(e){ records = []; }
-  try{
-    const w = JSON.parse(localStorage.getItem(LS_WORD) || '[]');
-    if (Array.isArray(w)) words = w;
-  }catch(e){ words = []; }
+  const safeParse = (key, fallback)=>{
+    try{
+      const raw = localStorage.getItem(key);
+      if (raw == null) return fallback;
+      return JSON.parse(raw);
+    }catch(e){
+      // JSON 损坏：保留现场到 *_corrupt，返回默认值，避免启动崩溃
+      try{
+        const bad = localStorage.getItem(key);
+        localStorage.setItem(key + '_corrupt_' + Date.now(), bad);
+        localStorage.removeItem(key);
+      }catch(e2){}
+      corruptKeys.push(key);
+      return fallback;
+    }
+  };
+  corruptKeys = [];
+  const r = safeParse(LS_REC, []);
+  if (Array.isArray(r)) records = r;
+  const w = safeParse(LS_WORD, []);
+  if (Array.isArray(w)) words = w;
+  const t = safeParse(LS_TRASH, []);
+  if (Array.isArray(t)) trash = t;
+  // 回收站 30 天自动清理
+  const cutoff = Date.now() - 30*86400000;
+  const kept = trash.filter(x=> x.deletedAt > cutoff);
+  if (kept.length !== trash.length){ trash = kept; }
   try{
     const s = JSON.parse(localStorage.getItem(LS_SET) || '{}');
     if (s && typeof s === 'object'){
@@ -677,16 +792,26 @@ function load(){
       if (+s.total > 0) settings.total = +s.total;
       if (s.libName) settings.libName = String(s.libName).slice(0, 20);
       if (s.theme) settings.theme = s.theme === 'dark' ? 'dark' : 'light';
+      if (s.examDate) settings.examDate = s.examDate;
       if (+s.lastExportAt > 0) settings.lastExportAt = +s.lastExportAt;
       if (+s.lastPromptAt > 0) settings.lastPromptAt = +s.lastPromptAt;
     }
   }catch(e){}
   try{ formCtx = JSON.parse(localStorage.getItem(LS_FORM) || 'null'); }catch(e){ formCtx = null; }
 }
+let saveTimer = null;
 function save(){
-  localStorage.setItem(LS_REC, JSON.stringify(records));
-  localStorage.setItem(LS_WORD, JSON.stringify(words));
-  localStorage.setItem(LS_SET, JSON.stringify(settings));
+  try{
+    localStorage.setItem(LS_REC, JSON.stringify(records));
+    localStorage.setItem(LS_WORD, JSON.stringify(words));
+    localStorage.setItem(LS_TRASH, JSON.stringify(trash));
+    localStorage.setItem(LS_SET, JSON.stringify(settings));
+  }catch(e){
+    toast('⚠️ 本地存储写入失败（可能已满），请导出备份并清理已掌握生词');
+  }
+  // 自动落盘备份：2 秒防抖
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ autoBackupWrite(); }, 2000);
 }
 function saveFormCtx(){
   formCtx = {
@@ -722,11 +847,14 @@ function activeDays(){ return new Set(records.map(r=>r.date)).size; }
 /* ================= 渲染 ================= */
 function renderAll(){
   renderHero();
+  renderExamBar();
+  renderTaskList();
   renderBackupBanner();
   renderReview();
   renderTodayList();
   renderVocab();
   renderFixTool();
+  renderTrash();
   renderHistory();
   renderCalendar();
   renderStats();
@@ -1174,17 +1302,6 @@ function editRecord(id){
   $('#page-today').scrollIntoView({block:'start'});
   window.scrollTo({top:0});
 }
-function deleteRecord(id){
-  const r = records.find(x=>x.id===id);
-  if (!r) return;
-  if (!confirm('确定删除这条记录吗？\n\n' + (r.part||'') + ' · ' + (r.date||''))){
-    return;
-  }
-  records = records.filter(x=>x.id!==id);
-  save();
-  toast('已删除');
-  renderAll();
-}
 
 /* ================= 导入导出 ================= */
 function exportData(){
@@ -1557,6 +1674,256 @@ function fixGenre(){
   toast('已把 ' + list.length + ' 条记录的体裁补填为「' + g + '」✓');
 }
 
+/* ================= 自动落盘备份（File System Access API） ================= */
+let bakHandle = null;          // FileSystemDirectoryHandle
+let bakWritable = false;       // 当前会话是否有写权限
+let bakError = '';
+
+function idbOpen(){
+  return new Promise((res, rej)=>{
+    const req = indexedDB.open('readinglog-bak', 1);
+    req.onupgradeneeded = ()=> req.result.createObjectStore('handles');
+    req.onsuccess = ()=> res(req.result);
+    req.onerror = ()=> rej(req.error);
+  });
+}
+async function idbSet(key, val){
+  const db = await idbOpen();
+  return new Promise((res, rej)=>{
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').put(val, key);
+    tx.oncomplete = res; tx.onerror = ()=> rej(tx.error);
+  });
+}
+async function idbGet(key){
+  const db = await idbOpen();
+  return new Promise((res, rej)=>{
+    const tx = db.transaction('handles', 'readonly');
+    const rq = tx.objectStore('handles').get(key);
+    rq.onsuccess = ()=> res(rq.result);
+    rq.onerror = ()=> rej(rq.error);
+  });
+}
+async function idbDel(key){
+  const db = await idbOpen();
+  return new Promise((res, rej)=>{
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').delete(key);
+    tx.oncomplete = res; tx.onerror = ()=> rej(tx.error);
+  });
+}
+async function autoBackupInit(){
+  const unsupported = !window.showDirectoryPicker || !window.FileSystemFileHandle;
+  if (unsupported){
+    renderAutoBakState('unsupported');
+    return;
+  }
+  try{
+    bakHandle = await idbGet('dir') || null;
+  }catch(e){ bakHandle = null; }
+  if (!bakHandle){ renderAutoBakState('off'); return; }
+  let perm = 'granted';
+  try{ perm = await bakHandle.queryPermission({ mode:'readwrite' }); }catch(e){}
+  if (perm === 'granted'){ bakWritable = true; renderAutoBakState('on'); }
+  else { renderAutoBakState('need-perm'); }
+}
+async function autoBackupPick(){
+  try{
+    const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+    bakHandle = dir;
+    await idbSet('dir', dir);
+    bakWritable = true;
+    save();                      // 立即触发一次写入
+    renderAutoBakState('on');
+    toast('自动备份已开启 ✓ 数据变动后将自动写入该文件夹');
+  }catch(e){
+    if (e && e.name !== 'AbortError'){ bakError = e.message || String(e); renderAutoBakState('error'); }
+  }
+}
+async function autoBackupReauth(){
+  if (!bakHandle){ await autoBackupPick(); return; }
+  try{
+    const perm = await bakHandle.requestPermission({ mode:'readwrite' });
+    if (perm === 'granted'){ bakWritable = true; bakError=''; renderAutoBakState('on'); save(); toast('授权成功 ✓'); }
+    else renderAutoBakState('need-perm');
+  }catch(e){ renderAutoBakState('error'); }
+}
+async function autoBackupStop(){
+  bakHandle = null; bakWritable = false;
+  try{ await idbDel('dir'); }catch(e){}
+  renderAutoBakState('off');
+  toast('已停止自动备份（已有备份文件仍保留在文件夹中）');
+}
+async function autoBackupWrite(){
+  if (!bakHandle || !bakWritable) return;
+  try{
+    const fh = await bakHandle.getFileHandle('readinglog-backup.json', { create:true });
+    const w = await fh.createWritable();
+    await w.write(JSON.stringify({
+      app: '真题阅读打卡', version: SCHEMA_VERSION,
+      exportedAt: new Date().toISOString(),
+      settings, records, words,
+    }, null, 2));
+    await w.close();
+    bakError = '';
+    renderAutoBakState('on', true);
+  }catch(e){
+    bakError = e.message || String(e);
+    bakWritable = false;
+    renderAutoBakState('need-perm');
+  }
+}
+let bakStateTimer = null;
+function renderAutoBakState(state, justWrote){
+  const el = $('#autoBakState');
+  if (!el) return;
+  const time = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
+  const map = {
+    'unsupported': ['<span class="bak-state"><span class="dot"></span>当前浏览器不支持自动备份，请使用「导出备份」</span>', false],
+    'off': ['<span class="bak-state"><span class="dot"></span>未开启</span>', false],
+    'on': [justWrote
+      ? '<span class="bak-state on"><span class="dot"></span>已开启 · ' + time + ' 刚刚写入 ✓</span>'
+      : '<span class="bak-state on"><span class="dot"></span>已开启 · 每次改动自动写入</span>', false],
+    'need-perm': ['<span class="bak-state err"><span class="dot"></span>需要重新授权后才能继续写入</span>', true],
+    'error': ['<span class="bak-state err"><span class="dot"></span>备份出错：' + esc(bakError) + '</span>', true],
+  };
+  const m = map[state] || map['off'];
+  el.innerHTML = m[0];
+  $('#btnAutoBak').textContent = (state === 'need-perm' || state === 'error') ? '重新授权' : '选择备份文件夹';
+  $('#btnAutoBakStop').hidden = !(state === 'on' || state === 'need-perm');
+}
+
+/* ================= 回收站 ================= */
+function trashAdd(type, item){
+  trash.push({ type, item, deletedAt: Date.now() });
+  if (trash.length > 200) trash = trash.slice(-200);
+}
+function deleteRecord(id){
+  const r = records.find(x=>x.id===id);
+  if (!r) return;
+  if (!confirm('确定删除这条记录吗？\n\n' + (r.part||'') + ' · ' + (r.date||''))){
+    return;
+  }
+  trashAdd('record', r);
+  records = records.filter(x=>x.id!==id);
+  save();
+  toast('已删除', '撤销', ()=>{
+    const t = trash.pop();
+    if (t && t.type === 'record'){
+      records.push(t.item);
+      save(); renderAll();
+      toast('已恢复 ✓');
+    }
+  });
+  renderAll();
+}
+function deleteWord(id){
+  const w = words.find(x=>x.id===id);
+  if (!w) return;
+  if (confirm('删除生词「' + w.word + '」？')){
+    trashAdd('word', w);
+    words = words.filter(x=>x.id!==w.id);
+    save();
+    toast('已删除生词', '撤销', ()=>{
+      const t = trash.pop();
+      if (t && t.type === 'word'){
+        words.push(t.item);
+        save(); renderAll();
+        toast('已恢复 ✓');
+      }
+    });
+    renderAll();
+  }
+}
+function renderTrash(){
+  const cnt = $('#trashCount'), el = $('#trashList');
+  if (!cnt) return;
+  cnt.textContent = trash.length ? ('· ' + trash.length + ' 条，30 天后自动清除') : '';
+  if (!trash.length){
+    el.innerHTML = '<div class="muted" style="font-size:12.5px;padding:2px 0">回收站是空的。删除的记录和生词会先放在这里，可在 30 天内恢复。</div>';
+    return;
+  }
+  el.innerHTML = trash.slice().reverse().map((t, i)=>{
+    const idx = trash.length - 1 - i;
+    const name = t.type === 'word' ? ('🔤 ' + esc(t.item.word) + '（生词）')
+      : ('📄 ' + esc(t.item.part || '（未填 Part）') + ' · ' + esc(t.item.date || ''));
+    return '<div class="witem"><div class="wi-main"><span class="ws">' + name
+      + ' · ' + Math.round((Date.now() - t.deletedAt) / 86400000) + ' 天前删除</span></div>'
+      + '<div class="wi-ops"><button class="btn sm" data-trash-idx="' + idx + '" data-act="trestore">恢复</button></div></div>';
+  }).join('');
+}
+
+/* ================= 考试倒计时 ================= */
+function renderExamBar(){
+  const bar = $('#examBar');
+  if (!settings.examDate){ bar.hidden = true; return; }
+  const exam = parseD(settings.examDate);
+  const today = parseD(todayStr());
+  const left = Math.ceil((exam - today) / 86400000);
+  if (left < 0){ bar.hidden = true; return; }
+  const uniq = uniqueArticleCount();
+  const unread = Math.max(0, settings.total - uniq);
+  const suggest = left > 0 ? Math.max(1, Math.ceil(unread / left)) : unread;
+  bar.hidden = false;
+  let sugHtml = '';
+  if (unread > 0){
+    if (suggest > settings.goal){
+      sugHtml = '<span class="sug">按剩余天数倒推，建议每天读 <b>' + suggest + '</b> 篇（当前目标 ' + settings.goal + '）</span>'
+        + '<button class="btn sm" id="btnApplySug">设为每日目标</button>';
+    } else {
+      sugHtml = '<span class="sug">当前每日目标 ' + settings.goal + ' 篇，照此节奏考试前可读完 ✓</span>';
+    }
+  } else {
+    sugHtml = '<span class="sug">题库已全部读完，进入冲刺复习阶段 💪</span>';
+  }
+  bar.innerHTML = '<span class="xd">' + left + ' 天</span>'
+    + '<span class="xt">距 ' + settings.examDate.replace(/-/g, '.') + ' 考试<br>' + sugHtml + '</span>';
+  const applyBtn = $('#btnApplySug');
+  if (applyBtn){
+    applyBtn.addEventListener('click', ()=>{
+      settings.goal = suggest;
+      save(); renderAll();
+      toast('每日目标已调整为 ' + suggest + ' 篇 ✓');
+    });
+  }
+}
+
+/* ================= 今日学习清单 ================= */
+function renderTaskList(){
+  const card = $('#taskCard'), el = $('#taskList');
+  const todayCount = recordsOf(todayStr()).length;
+  const dueReviews = reviewInfo();
+  const dueWords = words.filter(isWordDue);
+  const goalDone = todayCount >= settings.goal;
+  const allDone = goalDone && !dueReviews.length && !dueWords.length;
+
+  if (allDone && !todayCount){
+    card.hidden = true;   // 完全没有数据的新用户不显示
+    return;
+  }
+  card.hidden = false;
+  if (allDone){
+    el.innerHTML = '<div class="celebrate">🎉 今日任务全部完成！读了 ' + todayCount + ' 篇，无待复习内容。<br>保持节奏，明天见！</div>';
+    return;
+  }
+  const items = [];
+  items.push('<div class="todo-item' + (goalDone ? ' done' : '') + '" data-go="form">'
+    + '<span class="ti-ico">📖</span><div class="ti-main">今日目标 ' + todayCount + ' / ' + settings.goal + ' 篇'
+    + '<div class="ti-sub">' + (goalDone ? '已完成 ✓' : '还差 ' + (settings.goal - todayCount) + ' 篇，点这里开始记录') + '</div></div>'
+    + (goalDone ? '' : '<span class="ti-go">去记录 →</span>') + '</div>');
+  if (dueReviews.length){
+    items.push('<div class="todo-item" data-go="reviews">'
+      + '<span class="ti-ico">🔁</span><div class="ti-main">重读 ' + dueReviews.length + ' 篇到期的文章'
+      + '<div class="ti-sub">最久的一篇已过 ' + dueReviews[0].days + ' 天</div></div><span class="ti-go">查看 →</span></div>');
+  }
+  if (dueWords.length){
+    items.push('<div class="todo-item" data-go="words">'
+      + '<span class="ti-ico">🔤</span><div class="ti-main">复习 ' + dueWords.length + ' 个生词'
+      + '<div class="ti-sub">闪卡自测，认识升档、忘了重来</div></div><span class="ti-go">开始 →</span></div>');
+  }
+  el.innerHTML = items.join('');
+}
+
 /* ================= 备份提醒 ================= */
 const WEEK_MS = 7 * 24 * 3600 * 1000;
 function backupNeeded(){
@@ -1695,14 +2062,30 @@ function downloadShareImage(){
   toast('分享图已生成，已开始下载');
 }
 
-/* ================= Toast ================= */
+/* ================= Toast（支持操作按钮） ================= */
 let toastTimer = null;
-function toast(msg){
+let toastAction = null;
+function toast(msg, actLabel, actFn){
   const t = $('#toast');
   t.textContent = msg;
+  const old = t.querySelector('.t-act');
+  if (old) old.remove();
+  toastAction = null;
+  if (actLabel && actFn){
+    const b = document.createElement('button');
+    b.className = 't-act';
+    b.textContent = actLabel;
+    b.addEventListener('click', ()=>{
+      clearTimeout(toastTimer);
+      t.classList.remove('show');
+      actFn();
+    });
+    t.appendChild(b);
+    toastAction = actFn;
+  }
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), actLabel ? 6000 : 2200);
 }
 
 /* ================= Tab ================= */
@@ -1733,13 +2116,36 @@ function bind(){
   $('#btnSaveNext').addEventListener('click', ()=>submitForm(true));
   $('#btnCancel').addEventListener('click', closeForm);
   document.addEventListener('keydown', e=>{
+    const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
     if (e.key==='Escape'){
       if (!$('#formCard').hidden && !ui.editingId) closeForm();
       if (!$('#bulkCard').hidden) closeBulk();
+      $('#kbdHelp').hidden = true;
     }
     if (e.key==='Enter' && e.ctrlKey && !$('#formCard').hidden && $('#formCard').offsetParent !== null){
       e.preventDefault();
       submitForm(false);
+      return;
+    }
+    if (inField || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key === '?' || (e.shiftKey && e.key === '/')){ $('#kbdHelp').hidden = false; e.preventDefault(); return; }
+    if (e.key === 'n' || e.key === 'N'){
+      if (ui.tab !== 'today') switchTab('today');
+      openForm(null);
+      e.preventDefault();
+      return;
+    }
+    if (e.key === '/'){
+      const target = ui.tab === 'vocab' ? $('#wq') : $('#fq');
+      if (target){ switchTab(ui.tab === 'vocab' ? 'vocab' : 'history'); target.focus(); }
+      e.preventDefault();
+      return;
+    }
+    const tabIdx = '123456'.indexOf(e.key);
+    if (tabIdx >= 0){
+      const tabNames = ['today','history','calendar','vocab','stats','settings'];
+      switchTab(tabNames[tabIdx]);
+      return;
     }
   });
 
@@ -1802,12 +2208,7 @@ function bind(){
     if (!w) return;
     if (btn.dataset.act === 'wmaster'){ w.box = 4; w.lastReviewAt = Date.now(); save(); renderAll(); toast('已标记掌握 ✓'); }
     else if (btn.dataset.act === 'wreset'){ w.box = 0; w.lastReviewAt = null; save(); renderAll(); toast('已重置，重新进入复习计划'); }
-    else if (btn.dataset.act === 'wdel'){
-      if (confirm('删除生词「' + w.word + '」？')){
-        words = words.filter(x=> x.id !== w.id);
-        save(); renderAll(); toast('已删除');
-      }
-    }
+    else if (btn.dataset.act === 'wdel'){ deleteWord(w.id); }
   });
   $('#wq').addEventListener('input', renderVocab);
   $('#wStatusFilter').addEventListener('change', e=>{ ui.wordFilter = e.target.value; renderVocab(); });
@@ -1821,6 +2222,39 @@ function bind(){
 
   // 数据小工具
   $('#btnFixGenre').addEventListener('click', fixGenre);
+
+  // 今日学习清单点击
+  $('#taskList').addEventListener('click', e=>{
+    const item = e.target.closest('.todo-item');
+    if (!item) return;
+    const go = item.dataset.go;
+    if (go === 'form'){ openForm(null); window.scrollTo({top:0}); }
+    else if (go === 'reviews'){ const c = $('#reviewCard'); if (c && !c.hidden) c.scrollIntoView({behavior:'smooth', block:'center'}); }
+    else if (go === 'words'){ switchTab('vocab'); startReview(); }
+  });
+
+  // 回收站恢复
+  $('#trashList').addEventListener('click', e=>{
+    const btn = e.target.closest('button[data-act="trestore"]');
+    if (!btn) return;
+    const idx = +btn.dataset.trashIdx;
+    const t = trash[idx];
+    if (!t) return;
+    if (t.type === 'record') records.push(t.item); else words.push(t.item);
+    trash.splice(idx, 1);
+    save(); renderAll();
+    toast('已恢复 ✓');
+  });
+
+  // 自动备份
+  $('#btnAutoBak').addEventListener('click', ()=>{
+    if (!bakHandle) autoBackupPick(); else autoBackupReauth();
+  });
+  $('#btnAutoBakStop').addEventListener('click', autoBackupStop);
+
+  // 快捷键帮助
+  $('#btnKbdClose').addEventListener('click', ()=>{ $('#kbdHelp').hidden = true; });
+  $('#kbdHelp').addEventListener('click', e=>{ if (e.target === $('#kbdHelp')) $('#kbdHelp').hidden = true; });
 
   // 备份提醒
   $('#btnBannerExport').addEventListener('click', ()=>{ exportData(); renderBackupBanner(); });
@@ -1870,6 +2304,7 @@ function bind(){
     if (g>0) settings.goal = g;
     if (tt>0) settings.total = tt;
     settings.libName = ($('#sLib').value.trim() || '六级真题').slice(0,20);
+    settings.examDate = $('#sExam').value || '';
     save(); renderAll(); toast('设置已保存');
   });
   $('#btnExport').addEventListener('click', exportData);
@@ -1902,12 +2337,29 @@ function init(){
   $('#sGoal').value = settings.goal;
   $('#sTotal').value = settings.total;
   $('#sLib').value = settings.libName;
+  $('#sExam').value = settings.examDate || '';
   applyTheme();
   bind();
   renderAll();
+  autoBackupInit();
+  if (corruptKeys.length){
+    toast('⚠️ 部分数据文件损坏已隔离（' + corruptKeys.join(', ') + '），如有备份请导入恢复');
+  }
   // PWA：仅在 http(s) 环境注册（file:// 打开时跳过）
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
-    try { navigator.serviceWorker.register('sw.js').catch(function(){}); } catch(e){}
+    try {
+      navigator.serviceWorker.register('sw.js').then(reg=>{
+        reg.addEventListener('updatefound', ()=>{
+          const nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener('statechange', ()=>{
+            if (nw.state === 'installed' && navigator.serviceWorker.controller){
+              toast('🚀 发现新版本', '刷新更新', ()=> location.reload());
+            }
+          });
+        });
+      }).catch(function(){});
+    } catch(e){}
   }
 }
 init();
