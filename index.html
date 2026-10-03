@@ -393,6 +393,10 @@
         <div class="field">
           <label>阅读日期</label>
           <input type="date" id="fDate">
+          <div style="display:flex;gap:6px">
+            <button class="btn sm" type="button" id="fDateToday">今天</button>
+            <button class="btn sm" type="button" id="fDateYesterday">昨天</button>
+          </div>
         </div>
         <div class="field">
           <label>考试年月</label>
@@ -577,9 +581,23 @@
     <div class="card">
       <div class="title-row">
         <h3 class="card-title">本周小结 <span class="muted" style="font-size:12px;font-weight:400">· 近 7 天 vs 上周</span></h3>
-        <button class="btn sm primary" id="btnShare">🖼 生成打卡分享图</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn sm" id="btnWeekCopy">📋 复制周报文本</button>
+          <button class="btn sm primary" id="btnShare">🖼 生成打卡分享图</button>
+        </div>
       </div>
       <div class="wk" id="weekCards"></div>
+    </div>
+    <div class="card">
+      <h3 class="card-title">近 8 周学习趋势 <span class="muted" style="font-size:12px;font-weight:400">· 左：每周篇数；右：周均阅读速度（有用时的数据才会出现）</span></h3>
+      <div class="dist-grid">
+        <div>
+          <div class="chart" id="chartWeekCount" style="height:130px"></div>
+        </div>
+        <div>
+          <div class="chart" id="chartWeekSpeed" style="height:130px"></div>
+        </div>
+      </div>
     </div>
     <div class="card">
       <h3 class="card-title">题库覆盖矩阵 <span class="muted" style="font-size:12px;font-weight:400">· 历年场次 × 套数，颜色越深读得越多，点格子可查看对应记录</span></h3>
@@ -608,12 +626,33 @@
       <h3 class="card-title">里程碑</h3>
       <div class="badges" id="badges"></div>
     </div>
+    <div class="card">
+      <h3 class="card-title">成绩档案 <span class="muted" style="font-size:12px;font-weight:400">· 考后录入分数，与备考付出形成闭环</span></h3>
+      <div class="form-grid" style="margin-bottom:12px">
+        <div class="field"><label>考试日期</label><input type="date" id="scDate"></div>
+        <div class="field"><label>总分（必填，满分 710）</label><input type="number" id="scTotal" min="0" max="710"></div>
+        <div class="field"><label>听力（选填）</label><input type="number" id="scListen" min="0" max="248"></div>
+        <div class="field"><label>阅读（选填）</label><input type="number" id="scRead" min="0" max="248"></div>
+        <div class="field"><label>写作翻译（选填）</label><input type="number" id="scWrite" min="0" max="213"></div>
+      </div>
+      <div class="form-actions"><button class="btn primary" id="btnScoreAdd">＋ 记录这次成绩</button></div>
+      <div id="scoreList" style="margin-top:12px"></div>
+    </div>
   </section>
 
   <!-- ============ 设置 ============ -->
   <section id="page-settings">
     <div class="card">
       <h3 class="card-title">目标设置</h3>
+      <div class="set-row">
+        <div class="lab">题库预设<small>选一套预设自动填入名称与篇数，下方微调后点「保存设置」生效</small></div>
+        <select id="sPreset" style="border:1px solid var(--border);border-radius:9px;padding:7px 10px;font-family:inherit;background:var(--field);color:var(--text)">
+          <option value="">— 选择预设 —</option>
+          <option value="cet6">六级真题（593 篇）</option>
+          <option value="cet4">四级真题（593 篇）</option>
+          <option value="kaoyan1">考研英语一（约 84 篇阅读）</option>
+        </select>
+      </div>
       <div class="set-row">
         <div class="lab">考试日期<small>设置后首页显示倒计时，并按剩余天数倒推每日目标</small></div>
         <input type="date" id="sExam">
@@ -674,7 +713,7 @@
     <div class="card">
       <h3 class="card-title">关于</h3>
       <div class="muted" style="line-height:2;font-size:13px">
-        真题阅读打卡 <b>v<!--VER-->1.6.1<!--/VER--></b> · 本地小工具，完全离线使用，数据不上传。<br>
+        真题阅读打卡 <b>v<!--VER-->1.7.0<!--/VER--></b> · 本地小工具，完全离线使用，数据不上传。<br>
         线上版（可安装为桌面 / 手机应用）：<a href="https://lii-lii321.github.io/cet6-reading-log/" target="_blank" style="color:var(--primary-deep)">lii-lii321.github.io/cet6-reading-log</a><br>
         安装方法：用 Edge / Chrome 打开线上版，点地址栏右侧的「安装」图标即可；不同设备数据独立，换设备时用备份文件迁移。<br>
         快捷键：按 <kbd>?</kbd> 查看。
@@ -721,8 +760,15 @@ const LS_SET = 'readinglog_settings_v1';
 const LS_FORM = 'readinglog_formctx_v1';
 const LS_WORD = 'readinglog_words_v1';
 const LS_TRASH = 'readinglog_trash_v1';
-const APP_VERSION = '1.6.1';
+const LS_SCORE = 'readinglog_scores_v1';
+const APP_VERSION = '1.7.0';
 const SCHEMA_VERSION = 2;
+
+const LIB_PRESETS = {
+  cet6: { name: '六级真题', total: 593 },
+  cet4: { name: '四级真题', total: 593 },
+  kaoyan1: { name: '考研英语一', total: 84 },
+};
 
 const TYPES = ['听力','阅读理解（四选一）','完形填空（选词填空）','长篇阅读（段落匹配）','翻译','写作','其他'];
 const GENRES = ['议论文','说明文','对话','新闻报道','记叙文','其他'];
@@ -731,6 +777,7 @@ const W_INT = [1, 3, 7, 21];   // 莱特纳间隔（天），box 0-3；box>=4 �
 let records = [];
 let words = [];
 let trash = [];
+let scores = [];
 let corruptKeys = [];
 let settings = { goal: 2, total: 593, libName: '六级真题' };
 let formCtx = null;
@@ -783,6 +830,9 @@ function load(){
   if (Array.isArray(w)) words = w;
   const t = safeParse(LS_TRASH, []);
   if (Array.isArray(t)) trash = t;
+  const sc = safeParse(LS_SCORE, []);
+  if (Array.isArray(sc)) scores = sc;
+  scores.sort((a,b)=> b.date.localeCompare(a.date));
   // 回收站 30 天自动清理
   const cutoff = Date.now() - 30*86400000;
   const kept = trash.filter(x=> x.deletedAt > cutoff);
@@ -807,6 +857,7 @@ function save(){
     localStorage.setItem(LS_REC, JSON.stringify(records));
     localStorage.setItem(LS_WORD, JSON.stringify(words));
     localStorage.setItem(LS_TRASH, JSON.stringify(trash));
+    localStorage.setItem(LS_SCORE, JSON.stringify(scores));
     localStorage.setItem(LS_SET, JSON.stringify(settings));
   }catch(e){
     toast('⚠️ 本地存储写入失败（可能已满），请导出备份并清理已掌握生词');
@@ -1022,9 +1073,11 @@ function renderStats(){
   ).join('');
 
   renderMatrix();
+  renderTrend();
   renderWeekly();
   renderQuality();
   renderBadges();
+  renderScores();
 
   // 最近14天
   const days = [];
@@ -1116,6 +1169,79 @@ function renderQuality(){
     + rows.map(r=> '<tr><td>'+esc(r.k)+'</td><td>'+r.n+'</td><td>'+(r.mins==null?'—':fmt(r.mins)+' 分')+'</td>'
       + '<td>'+(r.wpm==null?'—':r.wpm+' 词/分')+'</td><td>'+fmt(r.wrong)+'</td><td>'+fmt(r.nw)+'</td></tr>').join('')
     + '</tbody></table>';
+}
+
+/* ---------- 近 8 周学习趋势 ---------- */
+function renderTrend(){
+  const weeks = [];
+  for (let i=7;i>=0;i--){
+    const end = new Date(); end.setDate(end.getDate() - i*7);
+    const start = new Date(end); start.setDate(start.getDate()-6);
+    weeks.push({ s: fmtD(start), e: fmtD(end) });
+  }
+  function miniChart(el, values, fmt, emptyLabel){
+    const max = Math.max(1, ...values.map(v=> v.v));
+    el.innerHTML = weeks.map((w,i)=>{
+      const v = values[i].v;
+      const h = v ? Math.max(6, Math.round(v/max*80)) : 3;
+      const d = parseD(w.s);
+      const label = (d.getMonth()+1) + '/' + d.getDate();
+      return '<div class="col" title="'+w.s+' ~ '+w.e+'：'+(v ? fmt(values[i]) : emptyLabel)+'">'
+        + (v ? '<div class="num">'+(typeof v === 'number' ? Math.round(v*10)/10 : v)+'</div>' : '')
+        + '<div class="stick'+(v?'':' zero')+'" style="height:'+h+'px"></div>'
+        + '<div class="lab">'+label+'</div></div>';
+    }).join('');
+  }
+  const weekRecords = weeks.map(w=> records.filter(r=> r.date >= w.s && r.date <= w.e));
+  miniChart($('#chartWeekCount'), weekRecords.map(list=> ({ v: list.length })), it=> it.v + ' 篇', '0 篇');
+  const weekSpeed = weekRecords.map(list=>{
+    let wo = 0, mi = 0;
+    list.forEach(r=>{ if (r.words && r.minutes){ wo += r.words; mi += r.minutes; } });
+    return { v: mi ? wo/mi : 0 };
+  });
+  miniChart($('#chartWeekSpeed'), weekSpeed, it=> '≈' + Math.round(it.v) + ' 词/分', '无计时数据');
+}
+
+/* ---------- 成绩档案 ---------- */
+function renderScores(){
+  const el = $('#scoreList');
+  if (!scores.length){
+    el.innerHTML = '<div class="muted" style="font-size:12.5px;padding:2px 0">还没有成绩记录。考完后在这里录入，回看备考付出与结果。</div>';
+    return;
+  }
+  el.innerHTML = scores.map((s, i)=>{
+    const parts = [s.total + ' 分'];
+    if (s.listen) parts.push('听 ' + s.listen);
+    if (s.read) parts.push('读 ' + s.read);
+    if (s.write) parts.push('写译 ' + s.write);
+    let delta = '';
+    if (i < scores.length - 1){
+      const d = s.total - scores[i+1].total;
+      delta = '<span class="wk-delta ' + (d > 0 ? 'up' : (d < 0 ? 'down' : 'flat')) + '" style="margin-left:8px">'
+        + (d > 0 ? '▲ +' : (d < 0 ? '▼ ' : '— ')) + d + ' vs 上次</span>';
+    }
+    return '<div class="witem"><div class="wi-main"><span class="ww">' + s.date + '</span> '
+      + '<span class="vchip">' + parts.join(' · ') + '</span>' + delta + '</div>'
+      + '<div class="wi-ops"><button class="btn sm danger" data-score-idx="' + i + '" data-act="sdel">删除</button></div></div>';
+  }).join('');
+}
+function addScore(){
+  const date = $('#scDate').value;
+  const total = +$('#scTotal').value;
+  if (!date || !total){ toast('请填写考试日期和总分'); return; }
+  if (scores.some(s=> s.date === date)){
+    if (!confirm('该日期已有成绩记录，再添加一条吗？')) return;
+  }
+  scores.push({
+    date, total,
+    listen: +$('#scListen').value || null,
+    read: +$('#scRead').value || null,
+    write: +$('#scWrite').value || null,
+  });
+  scores.sort((a,b)=> b.date.localeCompare(a.date));
+  save(); renderScores();
+  $('#scDate').value = ''; $('#scTotal').value = ''; $('#scListen').value = ''; $('#scRead').value = ''; $('#scWrite').value = '';
+  toast('成绩已记录 ✓');
 }
 
 /* ---------- 覆盖矩阵 ---------- */
@@ -1308,9 +1434,9 @@ function editRecord(id){
 /* ================= 导入导出 ================= */
 function exportData(){
   const payload = {
-    app: '真题阅读打卡', version: 2,
+    app: '真题阅读打卡', version: SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
-    settings, records, words,
+    settings, records, words, scores,
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
@@ -1348,6 +1474,19 @@ function importData(file){
       if (data.settings && +data.settings.goal>0) settings.goal = +data.settings.goal;
       if (data.settings && +data.settings.total>0) settings.total = +data.settings.total;
       if (data.settings && data.settings.libName) settings.libName = String(data.settings.libName).slice(0,20);
+      if (data.settings && data.settings.examDate) settings.examDate = data.settings.examDate;
+      let addedScores = 0;
+      const incomingScores = (data.scores || []).filter(s=> s && s.date && +s.total > 0);
+      if (incomingScores.length){
+        if (!merge) scores = [];
+        const sKeys = new Set(scores.map(s=> s.date + '|' + s.total));
+        incomingScores.forEach(s=>{
+          const k = s.date + '|' + s.total;
+          if (sKeys.has(k)) return;
+          scores.push(s); sKeys.add(k); addedScores++;
+        });
+        scores.sort((a,b)=> b.date.localeCompare(a.date));
+      }
       let addedWords = 0;
       const incomingWords = (data.words || []).filter(w=> w && w.word);
       if (incomingWords.length){
@@ -1363,7 +1502,7 @@ function importData(file){
         });
       }
       save(); renderAll();
-      toast('导入完成：新增 '+added+' 条记录、'+addedWords+' 个生词' + (merge && incoming.length-added>0 ? '，跳过重复 '+(incoming.length-added)+' 条' : ''));
+      toast('导入完成：新增 '+added+' 条记录、'+addedWords+' 个生词' + (addedScores ? '、'+addedScores+' 条成绩' : '') + (merge && incoming.length-added>0 ? '，跳过重复 '+(incoming.length-added)+' 条' : ''));
     }catch(e){
       alert('导入失败：文件格式不正确。请选择本应用导出的 .json 备份文件。');
     }
@@ -1795,7 +1934,7 @@ async function autoBackupWrite(){
     await w.write(JSON.stringify({
       app: '真题阅读打卡', version: SCHEMA_VERSION,
       exportedAt: new Date().toISOString(),
-      settings, records, words,
+      settings, records, words, scores,
     }, null, 2));
     await w.close();
     bakError = '';
@@ -1972,6 +2111,16 @@ function renderBackupBanner(){
     ? '上次导出备份是 ' + Math.round((Date.now() - lastE) / 86400000) + ' 天前。'
     : '你还没有导出过备份。';
   el.hidden = false;
+}
+
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  ta.remove();
 }
 
 /* ================= 打卡分享图 ================= */
@@ -2280,6 +2429,57 @@ function bind(){
     trash.splice(idx, 1);
     save(); renderAll();
     toast('已恢复 ✓');
+  });
+
+  // 表单日期快捷 chip
+  $('#fDateToday').addEventListener('click', ()=>{ $('#fDate').value = todayStr(); });
+  $('#fDateYesterday').addEventListener('click', ()=>{
+    const d = new Date(); d.setDate(d.getDate()-1);
+    $('#fDate').value = fmtD(d);
+  });
+
+  // 题库预设
+  $('#sPreset').addEventListener('change', e=>{
+    const p = LIB_PRESETS[e.target.value];
+    if (!p) return;
+    $('#sLib').value = p.name;
+    $('#sTotal').value = p.total;
+    toast('已填入预设「' + p.name + '」，点「保存设置」生效');
+  });
+
+  // 成绩档案
+  $('#btnScoreAdd').addEventListener('click', addScore);
+  $('#scoreList').addEventListener('click', e=>{
+    const btn = e.target.closest('button[data-act="sdel"]');
+    if (!btn) return;
+    const s = scores[+btn.dataset.scoreIdx];
+    if (s && confirm('删除 ' + s.date + ' 的成绩记录（' + s.total + ' 分）？')){
+      scores.splice(+btn.dataset.scoreIdx, 1);
+      save(); renderScores();
+      toast('已删除');
+    }
+  });
+
+  // 周报文本复制
+  $('#btnWeekCopy').addEventListener('click', ()=>{
+    const dayN = n => { const d = new Date(); d.setDate(d.getDate()-n); return fmtD(d); };
+    const thisW = records.filter(r=> r.date >= dayN(6) && r.date <= dayN(0));
+    const lastW = records.filter(r=> r.date >= dayN(13) && r.date <= dayN(7));
+    const wSum = thisW.reduce((s,r)=> s + (+r.words || 0), 0);
+    const uniq = uniqueArticleCount();
+    const pct = Math.min(100, uniq / settings.total * 100).toFixed(1);
+    const lines = [
+      '📖 ' + settings.libName + '打卡周报',
+      '本周精读 ' + thisW.length + ' 篇 / ' + wSum.toLocaleString() + ' 词（上周 ' + lastW.length + ' 篇）',
+      '连续打卡 ' + streak() + ' 天，累计 ' + uniq + ' 篇，题库进度 ' + pct + '%',
+    ];
+    const text = lines.join('\n');
+    const done = ()=> toast('周报已复制，去粘贴吧 ✓');
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(()=>{
+        fallbackCopy(text); done();
+      });
+    } else { fallbackCopy(text); done(); }
   });
 
   // 自动备份
