@@ -11,11 +11,12 @@
 <style>
   :root{
     --bg:#faf6ef; --card:#ffffff; --primary:#e8622c; --primary-deep:#d5501e;
-    --primary-soft:#fdeee4; --text:#33302c; --muted:#9a938a; --border:#efe7db;
+    --primary-soft:#fdeee4; --text:#33302c; --muted:#726b60; --border:#efe7db;
     --ok:#3d9a50; --blue:#4a7fd4; --purple:#8a63d2;
     --track:#f0e6d8; --track2:#f5efe4; --field:#fffdf9;
     --btn-bg:#f2ece1; --btn-bg-hover:#eae2d3; --btn-text:#5c554c;
-    --muted2:#7a736a; --scroll:#e3d9c8;
+    --muted2:#6d665c; --scroll:#e3d9c8;
+    --accent-ink:#b04310;
     --tag-blue-bg:#eef3fc; --tag-purple-bg:#f3eefc;
     --danger-bg:#fbeceb; --danger-text:#c2453a; --danger-bg-hover:#f6dcd9;
     --warn-bg:#fffaef; --warn-border:#eeda9d;
@@ -28,7 +29,7 @@
     --border:#352e26; --text:#eae4d9; --muted:#8f887d; --muted2:#a89f91;
     --primary:#e8622c; --primary-deep:#f0854f; --primary-soft:#382419;
     --btn-bg:#2b2620; --btn-bg-hover:#38312a; --btn-text:#cfc7ba;
-    --scroll:#3a332b;
+    --scroll:#3a332b; --accent-ink:#f0854f;
     --tag-blue-bg:rgba(122,165,232,.16); --tag-purple-bg:rgba(179,148,232,.16);
     --blue:#7aa5e8; --purple:#b394e8; --ok:#6cc27e;
     --danger-bg:#3d2521; --danger-text:#e58a7f; --danger-bg-hover:#4a2d27;
@@ -58,10 +59,10 @@
     border:none; background:transparent; padding:8px 14px; font-size:14px;
     color:var(--muted2); cursor:pointer; border-radius:9px; font-family:inherit;
   }
-  .tabs button:hover{background:var(--primary-soft); color:var(--primary-deep);}
+  .tabs button:hover{background:var(--primary-soft); color:var(--accent-ink);}
   .tabs button.active{background:var(--primary); color:#fff; font-weight:600;}
   .streak-badge{
-    background:var(--primary-soft); color:var(--primary-deep); font-weight:600;
+    background:var(--primary-soft); color:var(--accent-ink); font-weight:600;
     padding:6px 12px; border-radius:999px; font-size:13px; white-space:nowrap;
   }
   /* ===== 主区 ===== */
@@ -90,7 +91,7 @@
   .hero-mid{flex:1; min-width:0;}
   .hero-date{font-size:17px;font-weight:700;margin-bottom:10px;}
   .tp-text{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;}
-  .tp-text b{color:var(--primary-deep);}
+  .tp-text b{color:var(--accent-ink);}
   .bar{height:10px;background:var(--track);border-radius:999px;overflow:hidden;}
   .bar-fill{height:100%;background:linear-gradient(90deg,#f0854f,var(--primary));border-radius:999px;transition:width .35s;width:0;}
   .tp-sub{font-size:12px;color:var(--muted);margin-top:6px;}
@@ -111,7 +112,7 @@
   .form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
   .field{display:flex;flex-direction:column;gap:5px;}
   .field.span2{grid-column:span 2;}
-  .field label{font-size:12.5px;color:#7a736a;}
+  .field label{font-size:12.5px;color:var(--muted2);}
   .field input,.field select,.field textarea{
     border:1px solid var(--border);border-radius:9px;padding:8px 10px;font-size:14px;
     font-family:inherit;background:var(--field);color:var(--text);width:100%;
@@ -132,7 +133,7 @@
   .bulk-row .bp{font-weight:700;}
   .bulk-row .warn{color:#9a7300;background:#fdf4dc;border-radius:999px;padding:2px 9px;font-size:11.5px;}
   .bulk-sum{font-size:13px;margin:12px 2px 10px;}
-  .bulk-sum b{color:var(--primary-deep);}
+  .bulk-sum b{color:var(--accent-ink);}
   .bulk-opts{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:13px;}
   .bulk-opts select,.bulk-opts input{border:1px solid var(--border);border-radius:8px;padding:5px 8px;font-family:inherit;font-size:13px;background:var(--field);}
   .dist-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
@@ -150,7 +151,7 @@
   }
   .mx-cell:hover{transform:scale(1.12);}
   .mx-cell.c0{background:var(--track2);color:var(--muted);}
-  .mx-cell.c1{background:#fdeee4;color:var(--primary-deep);}
+  .mx-cell.c1{background:#fdeee4;color:var(--accent-ink);}
   .mx-cell.c2{background:#f6c39c;color:#7a3a12;}
   .mx-cell.c3{background:var(--primary);color:#fff;}
   .mx-total{font-size:11.5px;color:var(--muted);display:flex;align-items:center;justify-content:center;}
@@ -160,7 +161,7 @@
   .badges{display:flex;flex-wrap:wrap;gap:10px;}
   .badge{
     display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;
-    background:var(--primary-soft);color:var(--primary-deep);font-size:13px;font-weight:600;
+    background:var(--primary-soft);color:var(--accent-ink);font-size:13px;font-weight:600;
   }
   .badge .bi{font-size:15px;}
   .badge.locked{background:var(--btn-bg);color:var(--muted);font-weight:400;}
@@ -171,7 +172,7 @@
   body[data-theme="dark"] .bulk-row .warn{background:#3d3216;color:#d8b64a;}
   .banner-warn{border-color:var(--warn-border);background:var(--warn-bg);}
   /* ===== 生词本 ===== */
-  .vchip{font-size:12px;padding:4px 11px;border-radius:999px;background:var(--primary-soft);color:var(--primary-deep);white-space:nowrap;}
+  .vchip{font-size:12px;padding:4px 11px;border-radius:999px;background:var(--primary-soft);color:var(--accent-ink);white-space:nowrap;}
   .vchip.ok{background:rgba(61,154,80,.14);color:var(--ok);}
   .witem{
     display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border:1px solid var(--border);
@@ -223,7 +224,7 @@
   .rec-line1{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
   .rec-part{font-weight:700;font-size:14.5px;}
   .tag{
-    font-size:11.5px;padding:2.5px 9px;border-radius:999px;background:var(--primary-soft);color:var(--primary-deep);white-space:nowrap;
+    font-size:11.5px;padding:2.5px 9px;border-radius:999px;background:var(--primary-soft);color:var(--accent-ink);white-space:nowrap;
   }
   .tag.level{background:var(--tag-blue-bg);color:var(--blue);}
   .tag.genre{background:var(--tag-purple-bg);color:var(--purple);}
@@ -235,7 +236,7 @@
   }
   .day-head b{font-size:15px;}
   .day-head .muted{font-size:12.5px;}
-  .day-head .cnt{font-size:12px;background:var(--primary-soft);color:var(--primary-deep);border-radius:999px;padding:2px 9px;}
+  .day-head .cnt{font-size:12px;background:var(--primary-soft);color:var(--accent-ink);border-radius:999px;padding:2px 9px;}
   .empty{
     text-align:center;color:var(--muted);padding:36px 10px;font-size:13.5px;line-height:2;
   }
@@ -275,7 +276,7 @@
   .chart .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end;}
   .chart .stick{width:100%;max-width:34px;background:linear-gradient(180deg,#f0854f,var(--primary));border-radius:6px 6px 3px 3px;min-height:3px;transition:height .3s;}
   .chart .stick.zero{background:var(--track);}
-  .chart .num{font-size:11px;color:var(--primary-deep);font-weight:600;}
+  .chart .num{font-size:11px;color:var(--accent-ink);font-weight:600;}
   .chart .lab{font-size:10.5px;color:var(--muted);white-space:nowrap;}
   .dist-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
   .dist-name{width:150px;font-size:12.5px;color:#6b645a;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 150px;}
@@ -314,7 +315,7 @@
   .todo-item .ti-main{flex:1;min-width:0;line-height:1.5;}
   .todo-item .ti-sub{font-size:12px;color:var(--muted);margin-top:1px;}
   .todo-item.done{opacity:.62;}
-  .todo-item .ti-go{flex:0 0 auto;color:var(--primary-deep);font-weight:600;font-size:12.5px;}
+  .todo-item .ti-go{flex:0 0 auto;color:var(--accent-ink);font-weight:600;font-size:12.5px;}
   .celebrate{
     text-align:center;padding:14px 10px;font-size:14px;color:var(--ok);font-weight:600;line-height:1.9;
   }
@@ -347,6 +348,17 @@
   ::-webkit-scrollbar{width:10px;}
   ::-webkit-scrollbar-thumb{background:var(--scroll);border-radius:99px;border:2px solid var(--bg);}
   ::-webkit-scrollbar-track{background:transparent;}
+  /* ===== 可访问性 ===== */
+  :focus-visible{outline:2px solid var(--primary); outline-offset:2px; border-radius:4px;}
+  .load-more{
+    text-align:center;color:var(--accent-ink);font-size:13px;font-weight:600;padding:14px;
+    border:1px dashed var(--border);border-radius:10px;cursor:pointer;margin:14px 0;user-select:none;
+  }
+  .load-more:hover{background:var(--primary-soft);}
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{transition-duration:.01ms !important; animation-duration:.01ms !important;}
+    html{scroll-behavior:auto;}
+  }
 </style>
 </head>
 <body>
@@ -613,6 +625,10 @@
       <h3 class="card-title">质量分析 <span class="muted" style="font-size:12px;font-weight:400">· 按题型平均，帮你找到弱项</span></h3>
       <div id="qualityTable"></div>
     </div>
+    <div class="card">
+      <h3 class="card-title">难度 × 错题交叉 <span class="muted" style="font-size:12px;font-weight:400">· 哪个难度层错得最多，就重点精读哪一层</span></h3>
+      <div id="levelTable"></div>
+    </div>
     <div class="dist-grid">
       <div class="card">
         <h3 class="card-title">题型分布</h3>
@@ -622,6 +638,14 @@
         <h3 class="card-title">体裁分布</h3>
         <div id="genreDist"></div>
       </div>
+    </div>
+    <div class="card">
+      <h3 class="card-title">生词掌握分布 <span class="muted" style="font-size:12px;font-weight:400">· 莱特纳五档（认识 4 轮即掌握）与未来 7 天到期量</span></h3>
+      <div id="vocabInsight"></div>
+    </div>
+    <div class="card">
+      <h3 class="card-title">月度报告 <span class="muted" style="font-size:12px;font-weight:400">· 近 6 个月汇总，篇数环比上月</span></h3>
+      <div id="monthlyTable"></div>
     </div>
     <div class="card">
       <h3 class="card-title">里程碑</h3>
@@ -714,8 +738,8 @@
     <div class="card">
       <h3 class="card-title">关于</h3>
       <div class="muted" style="line-height:2;font-size:13px">
-        真题阅读打卡 <b>v<!--VER-->1.7.0<!--/VER--></b> · 本地小工具，完全离线使用，数据不上传。<br>
-        线上版（可安装为桌面 / 手机应用）：<a href="https://lii-lii321.github.io/cet6-reading-log/" target="_blank" style="color:var(--primary-deep)">lii-lii321.github.io/cet6-reading-log</a><br>
+        真题阅读打卡 <b>v<!--VER-->1.8.0<!--/VER--></b> · 本地小工具，完全离线使用，数据不上传。<br>
+        线上版（可安装为桌面 / 手机应用）：<a href="https://lii-lii321.github.io/cet6-reading-log/" target="_blank" style="color:var(--accent-ink)">lii-lii321.github.io/cet6-reading-log</a><br>
         安装方法：用 Edge / Chrome 打开线上版，点地址栏右侧的「安装」图标即可；不同设备数据独立，换设备时用备份文件迁移。<br>
         快捷键：按 <kbd>?</kbd> 查看。
       </div>
@@ -723,9 +747,9 @@
   </section>
 </main>
 
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
-<div class="kbd-help" id="kbdHelp" hidden>
+<div class="kbd-help" id="kbdHelp" role="dialog" aria-modal="true" aria-label="快捷键帮助" hidden>
   <div class="kbd-card">
     <h3>⌨️ 快捷键</h3>
     <div class="kbd-row"><span>新建记录</span><kbd>N</kbd></div>
@@ -740,7 +764,7 @@
   </div>
 </div>
 
-<div class="kbd-help" id="importPick" hidden>
+<div class="kbd-help" id="importPick" role="dialog" aria-modal="true" aria-label="选择导入方式" hidden>
   <div class="kbd-card">
     <h3>📥 选择导入方式</h3>
     <div class="muted" id="importPickMsg" style="font-size:13px;line-height:1.9;margin-bottom:14px"></div>
@@ -774,7 +798,7 @@ const LS_FORM = 'readinglog_formctx_v1';
 const LS_WORD = 'readinglog_words_v1';
 const LS_TRASH = 'readinglog_trash_v1';
 const LS_SCORE = 'readinglog_scores_v1';
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.8.0';
 const SCHEMA_VERSION = 2;
 
 const LIB_PRESETS = {
@@ -785,7 +809,6 @@ const LIB_PRESETS = {
 
 const TYPES = ['听力','阅读理解（四选一）','完形填空（选词填空）','长篇阅读（段落匹配）','翻译','写作','其他'];
 const GENRES = ['议论文','说明文','对话','新闻报道','记叙文','其他'];
-const W_INT = [1, 3, 7, 21];   // 莱特纳间隔（天），box 0-3；box>=4 视为掌握
 
 let records = [];
 let words = [];
@@ -805,6 +828,8 @@ let ui = {
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
+/* __CORE_BEGIN__ —— 纯函数区块：CI 用 scripts/extract-core.mjs 提取本区块跑单元测试。
+   约定：区块内不得调用 document / localStorage / window（仅依赖 Date、Math 的除外） */
 function esc(s){
   return String(s == null ? '' : s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -874,6 +899,141 @@ function normalizeScore(s){
   return { date, total, listen: sub(s.listen), read: sub(s.read), write: sub(s.write) };
 }
 
+function genId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+/* ================= 统计计算 ================= */
+function sortedRecords(){
+  return records.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.createdAt||'').localeCompare(a.createdAt||''));
+}
+function recordsOf(dateStr){ return records.filter(r=>r.date===dateStr); }
+function uniqueArticleCount(){
+  const set = new Set();
+  records.forEach(r=> set.add(articleKey(r)));
+  return set.size;
+}
+function articleKey(r){ return [r.exam||'', r.set||'', r.part||'', r.title||''].join('|'); }
+function totalWords(){ return records.reduce((s,r)=> s + (+r.words || 0), 0); }
+function streak(){
+  const days = new Set(records.map(r=>r.date));
+  const d = new Date();
+  if (!days.has(fmtD(d))) d.setDate(d.getDate()-1);
+  let n = 0;
+  while (days.has(fmtD(d))){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+function activeDays(){ return new Set(records.map(r=>r.date)).size; }
+
+/* ---------- 复习调度（纯函数） ---------- */
+function addDays(dateStr, n){
+  const d = parseD(dateStr);
+  d.setDate(d.getDate() + n);
+  return fmtD(d);
+}
+function reviewInfo(){
+  const map = {};
+  records.forEach(r=>{
+    const k = articleKey(r);
+    if (!map[k]) map[k] = [];
+    map[k].push(r.date);
+  });
+  const today = todayStr();
+  const due = [];
+  Object.entries(map).forEach(([k, dates])=>{
+    if (dates.length >= 4) return;            // 读满 4 遍视为已掌握
+    dates.sort();
+    const last = dates[dates.length - 1];
+    const interval = [7, 14, 30][dates.length - 1];
+    if (addDays(last, interval) > today) return;
+    const sample = records.find(r=>articleKey(r)===k);
+    due.push({
+      key: k, last, stage: dates.length,
+      days: Math.round((parseD(today) - parseD(last)) / 86400000),
+      sample,
+    });
+  });
+  due.sort((a,b)=> b.days - a.days);
+  return due;
+}
+
+/* ---------- 莱特纳生词调度（纯函数） ---------- */
+const W_INT = [1, 3, 7, 21];   // 莱特纳间隔（天），box 0-3；box>=4 视为掌握
+function isWordDue(w){
+  if (w.box >= 4) return false;
+  if (!w.lastReviewAt) return true;
+  return Date.now() - w.lastReviewAt >= W_INT[Math.min(w.box, 3)] * 86400000;
+}
+function wordDueCount(){ return words.filter(isWordDue).length; }
+
+/* ---------- 批量文本解析（纯函数） ---------- */
+function ymKey(s){
+  const m = String(s).match(/(\d{4})\s*年\s*(\d{1,2})\s*月/);
+  return m ? (+m[1]) * 12 + (+m[2]) : -1;
+}
+function blankItem(){
+  return { exam:'', set:'', part:'', type:'', level:'', words:null, date:null, ok:false, dup:false };
+}
+function guessType(s){
+  if (s.includes('听力')) return '听力';
+  if (s.includes('四选一') || s.includes('阅读理解')) return '阅读理解（四选一）';
+  if (s.includes('选词填空') || s.includes('完形填空')) return '完形填空（选词填空）';
+  if (s.includes('段落匹配') || s.includes('长篇') || s.includes('信息匹配')) return '长篇阅读（段落匹配）';
+  if (s.includes('翻译')) return '翻译';
+  if (s.includes('写作')) return '写作';
+  return '';
+}
+function parseBulkText(text){
+  const lines = String(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const items = [];
+  let cur = null;
+  let pendingDate = null;   // 独立日期行（如 2026-06-15）= 紧随其后的记录的打卡日期
+  for (let i=0; i<lines.length; i++){
+    const line = lines[i];
+    const dm = line.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+    if (dm){                       // 注意：不带「年月」字样，不会与考试年月行混淆
+      // 只记 pendingDate、不关闭当前组：组间时日期随下一个年月行生效（与组前写法语义一致），
+      // 写在最后一组之后时由下方循环结束处的回填逻辑生效
+      pendingDate = normDateStr(dm[1] + '-' + dm[2] + '-' + dm[3]);
+      continue;
+    }
+    const ym = line.match(/(\d{4})\s*年\s*(\d{1,2})\s*月/);
+    if (ym){                       // 考试年月行 = 新记录开始
+      if (cur && (cur.exam || cur.part)) items.push(cur);
+      cur = blankItem();
+      cur.date = pendingDate; pendingDate = null;
+      cur.exam = ym[1] + '年' + ym[2] + '月';
+      const sm = line.match(/第\s*(\d+)\s*套/);
+      if (sm) cur.set = sm[1];
+      continue;
+    }
+    if (!cur) continue;            // 组外内容（序号、空行等）忽略
+    if (/^Part\s/i.test(line) && !cur.part){ cur.part = line.replace(/\s+/g,' '); continue; }
+    if (!cur.type){
+      const t = guessType(line);
+      if (t){ cur.type = t; continue; }
+    }
+    if (!cur.level && /^[BC][12]$/i.test(line)){ cur.level = line.toUpperCase(); continue; }
+    if (/^\d+$/.test(line)){
+      // 下一行若为「年月」行，说明这是下一组的序号而非词数
+      const next = lines[i+1] || '';
+      const nextIsExam = /(\d{4})\s*年\s*(\d{1,2})\s*月/.test(next);
+      if (!nextIsExam && cur.words == null) cur.words = +line;
+      continue;
+    }
+    // 其余行（原文精读/精读/未知内容）忽略
+  }
+  if (cur && (cur.exam || cur.part)){
+    if (!cur.date && pendingDate) cur.date = pendingDate;   // 日期行写在最后一组之后时同样生效
+    items.push(cur);
+  }
+  items.forEach(it=>{
+    it.ok = !!(it.exam || it.part);
+    it.dup = it.ok && records.some(r=>articleKey(r)===articleKey(it));
+  });
+  return items;
+}
+/* __CORE_END__ */
+
+/* ================= 存取与持久化 ================= */
 function load(){
   const safeParse = (key, fallback)=>{
     try{
@@ -953,29 +1113,6 @@ function saveFormCtx(){
   };
   localStorage.setItem(LS_FORM, JSON.stringify(formCtx));
 }
-function genId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
-
-/* ================= 统计计算 ================= */
-function sortedRecords(){
-  return records.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.createdAt||'').localeCompare(a.createdAt||''));
-}
-function recordsOf(dateStr){ return records.filter(r=>r.date===dateStr); }
-function uniqueArticleCount(){
-  const set = new Set();
-  records.forEach(r=> set.add(articleKey(r)));
-  return set.size;
-}
-function articleKey(r){ return [r.exam||'', r.set||'', r.part||'', r.title||''].join('|'); }
-function totalWords(){ return records.reduce((s,r)=> s + (+r.words || 0), 0); }
-function streak(){
-  const days = new Set(records.map(r=>r.date));
-  const d = new Date();
-  if (!days.has(fmtD(d))) d.setDate(d.getDate()-1);
-  let n = 0;
-  while (days.has(fmtD(d))){ n++; d.setDate(d.getDate()-1); }
-  return n;
-}
-function activeDays(){ return new Set(records.map(r=>r.date)).size; }
 
 /* ================= 渲染 ================= */
 function renderAll(){
@@ -1065,6 +1202,11 @@ function renderFilters(){
   }).join('');
   tf.value = keepT; yf.value = keepY; gf.value = keepG;
 }
+/* 历史页分批渲染：记录多时先渲染一批，滚到底部自动续载，避免一次性拼几 MB 的 HTML */
+const HISTORY_BATCH = 80;
+let histShown = HISTORY_BATCH;
+let histFilterKey = '';
+let histObserver = null;
 function renderHistory(){
   const q = ui.filter.q.trim().toLowerCase();
   let list = sortedRecords();
@@ -1079,10 +1221,21 @@ function renderHistory(){
     el.innerHTML = '<div class="card"><div class="empty"><div class="big">🗂</div>没有符合条件的记录</div></div>';
     return;
   }
+  // 筛选条件变化时从头渲染
+  const fkey = [q, ui.filter.type, ui.filter.genre, ui.filter.level, ui.filter.ym].join('\u0001');
+  if (fkey !== histFilterKey){ histFilterKey = fkey; histShown = HISTORY_BATCH; }
+
+  const total = list.length;
+  let shown = list.slice(0, histShown);
+  // 截断点落在同一天时把当天剩余记录带上，避免拆散日期分组
+  if (shown.length && shown.length < total){
+    const lastDate = shown[shown.length-1].date;
+    while (shown.length < total && list[shown.length].date === lastDate) shown.push(list[shown.length]);
+  }
   const dayCount = {};
   list.forEach(r=>{ dayCount[r.date] = (dayCount[r.date]||0)+1; });
   let html = '', lastDate = '';
-  list.forEach(r=>{
+  shown.forEach(r=>{
     if (r.date !== lastDate){
       lastDate = r.date;
       const isToday = r.date === todayStr();
@@ -1092,7 +1245,27 @@ function renderHistory(){
     }
     html += recCardHTML(r);
   });
+  if (total > shown.length){
+    html += '<div class="load-more" id="historySentinel" role="button" tabindex="0"'
+      + ' aria-label="加载更多历史记录">已显示 ' + shown.length + ' / ' + total + ' 条 · 点击加载更多</div>';
+  }
   el.innerHTML = html;
+  if (histObserver){
+    histObserver.disconnect();
+    const sentinel = $('#historySentinel');
+    if (sentinel) histObserver.observe(sentinel);
+  }
+}
+function ensureHistObserver(){
+  if (histObserver || !('IntersectionObserver' in window)) return;
+  histObserver = new IntersectionObserver(entries=>{
+    entries.forEach(en=>{
+      if (en.isIntersecting && en.target.id === 'historySentinel'){
+        histShown += HISTORY_BATCH;
+        renderHistory();
+      }
+    });
+  }, { rootMargin: '600px 0px' });
 }
 
 /* ---------- 日历 ---------- */
@@ -1156,6 +1329,9 @@ function renderStats(){
   renderTrend();
   renderWeekly();
   renderQuality();
+  renderLevelInsight();
+  renderVocabInsight();
+  renderMonthly();
   renderBadges();
   renderScores();
 
@@ -1251,6 +1427,122 @@ function renderQuality(){
     + '</tbody></table>';
 }
 
+/* ---------- 难度 × 错题交叉 ---------- */
+function renderLevelInsight(){
+  const el = $('#levelTable');
+  const orders = ['B1','B2','C1','C2'];
+  const byLevel = {};
+  records.forEach(r=>{
+    const k = r.level || '未填难度';
+    (byLevel[k] = byLevel[k] || []).push(r);
+  });
+  const keys = orders.filter(l=>byLevel[l]).concat(Object.keys(byLevel).filter(k=>orders.indexOf(k)<0));
+  if (!keys.length){ el.innerHTML = '<div class="empty">还没有数据</div>'; return; }
+  const rows = keys.map(k=>{
+    const list = byLevel[k];
+    const withWrong = list.filter(r=> r.wrong != null);
+    const withSpeed = list.filter(r=> r.words && r.minutes);
+    const withMins = list.filter(r=> r.minutes != null);
+    const avg = (arr, f)=> arr.length ? arr.reduce((s,r)=> s + (+r[f]), 0) / arr.length : null;
+    return {
+      k, n: list.length,
+      mins: avg(withMins, 'minutes'),
+      wpm: withSpeed.length ? Math.round(withSpeed.reduce((s,r)=> s + r.words / r.minutes, 0) / withSpeed.length) : null,
+      wrong: avg(withWrong, 'wrong'),
+      wrongRate: withWrong.length ? withWrong.filter(r=> +r.wrong > 0).length / withWrong.length : null,
+    };
+  });
+  const fmt = v => v == null ? '—' : (Number.isInteger(v) ? v : v.toFixed(1));
+  el.innerHTML = '<table class="qtable"><thead><tr>'
+    + '<th>难度</th><th>篇数</th><th>平均用时</th><th>平均速度</th><th>平均错题</th><th>有错题占比</th>'
+    + '</tr></thead><tbody>'
+    + rows.map(r=> '<tr><td>'+esc(r.k)+'</td><td>'+r.n+'</td>'
+      + '<td>'+(r.mins==null?'—':fmt(r.mins)+' 分')+'</td>'
+      + '<td>'+(r.wpm==null?'—':r.wpm+' 词/分')+'</td>'
+      + '<td>'+fmt(r.wrong)+'</td>'
+      + '<td>'+(r.wrongRate==null?'—':Math.round(r.wrongRate*100)+'%')+'</td></tr>').join('')
+    + '</tbody></table>';
+}
+
+/* ---------- 生词掌握分布（莱特纳五档 + 未来 7 天到期节奏） ---------- */
+function renderVocabInsight(){
+  const el = $('#vocabInsight');
+  if (!words.length){
+    el.innerHTML = '<div class="empty">生词本还是空的。阅读时遇到的生词记进去，这里会展示掌握进度与到期节奏。</div>';
+    return;
+  }
+  const total = words.length;
+  const mastered = words.filter(w=> w.box >= 4).length;
+  const due = wordDueCount();
+  const boxes = [0,1,2,3,4];
+  const labels = ['新词 · 第 1 轮','第 2 轮','第 3 轮','第 4 轮','已掌握'];
+  const counts = boxes.map(b=> words.filter(w=> Math.min(w.box, 4) === b).length);
+  const maxN = Math.max(1, ...counts);
+  let html = '<div class="muted" style="font-size:12.5px;margin-bottom:10px">共 ' + total + ' 词 · 待复习 <b style="color:var(--accent-ink)">' + due + '</b> · 已掌握 ' + mastered + ' 个（' + Math.round(mastered/total*100) + '%）</div>';
+  html += counts.map((n,i)=>
+    '<div class="dist-row"><div class="dist-name">'+labels[i]+'</div>'
+    + '<div class="dist-bar-wrap"><div class="dist-bar" style="width:'+Math.round(n/maxN*100)+'%'
+      + (i===4 ? ';background:linear-gradient(90deg,#6cc27e,var(--ok))' : '') + '"></div></div>'
+    + '<div class="dist-val">'+n+' 词</div></div>'
+  ).join('');
+  // 未来 7 天到期：第 0 天统计所有已到期（含从未复习与逾期），之后按 lastReviewAt + 间隔落位
+  const dayMs = 86400000;
+  const today0 = new Date(); today0.setHours(0,0,0,0);
+  const duePerDay = [];
+  for (let i=0;i<7;i++){
+    const s = today0.getTime() + i*dayMs, e = s + dayMs;
+    duePerDay.push(words.filter(w=>{
+      if (w.box >= 4) return false;
+      const ts = w.lastReviewAt ? w.lastReviewAt + W_INT[Math.min(w.box,3)]*dayMs : 0;
+      return ts < e && (i > 0 ? ts >= s : ts >= 0);
+    }).length);
+  }
+  const maxD = Math.max(1, ...duePerDay);
+  html += '<div class="muted" style="font-size:12.5px;margin:14px 2px 4px">未来 7 天到期节奏</div>';
+  html += '<div class="chart" style="height:110px">' + duePerDay.map((n,i)=>{
+    const d = new Date(today0.getTime() + i*dayMs);
+    const lab = i===0?'今天':(i===1?'明天':(i===2?'后天':(d.getMonth()+1)+'/'+d.getDate()));
+    const h = n ? Math.max(6, Math.round(n/maxD*70)) : 3;
+    return '<div class="col" title="'+lab+'到期 '+n+' 个">'
+      + (n?'<div class="num">'+n+'</div>':'')
+      + '<div class="stick'+(n?'':' zero')+'" style="height:'+h+'px"></div>'
+      + '<div class="lab">'+lab+'</div></div>';
+  }).join('') + '</div>';
+  el.innerHTML = html;
+}
+
+/* ---------- 月度报告（近 6 个月） ---------- */
+function renderMonthly(){
+  const el = $('#monthlyTable');
+  if (!records.length){ el.innerHTML = '<div class="empty">还没有数据</div>'; return; }
+  const now = new Date();
+  const months = [];
+  for (let i=0;i<6;i++){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push(d.getFullYear() + '-' + pad2(d.getMonth()+1));   // YYYY-MM，匹配打卡日期前缀
+  }
+  const rows = months.map((m, i)=>{
+    const list = records.filter(r=> (r.date||'').startsWith(m));
+    // 最早一个月没有更早月份可比，环比留空
+    const prevList = i < months.length - 1 ? records.filter(r=> (r.date||'').startsWith(months[i+1])) : null;
+    const wordsSum = list.reduce((s,r)=> s + (+r.words || 0), 0);
+    const minsSum = list.reduce((s,r)=> s + (+r.minutes || 0), 0);
+    const wpm = minsSum ? Math.round(wordsSum / minsSum) : null;
+    const delta = prevList ? list.length - prevList.length : null;
+    const dCls = delta == null ? 'flat' : (delta === 0 ? 'flat' : (delta > 0 ? 'up' : 'down'));
+    const dTxt = delta == null ? '—' : (delta > 0 ? '▲ +' + delta : (delta < 0 ? '▼ ' + delta : '— 持平'));
+    return '<tr><td>' + m.replace('-','年') + '月</td><td>' + list.length + '</td>'
+      + '<td>' + (wordsSum ? wordsSum.toLocaleString() : '—') + '</td>'
+      + '<td>' + (minsSum ? (minsSum >= 600 ? (minsSum/60).toFixed(1)+' 小时' : minsSum+' 分') : '—') + '</td>'
+      + '<td>' + (wpm != null ? wpm + ' 词/分' : '—') + '</td>'
+      + '<td>' + new Set(list.map(r=>r.date)).size + '</td>'
+      + '<td><span class="wk-delta ' + dCls + '">' + dTxt + '</span></td></tr>';
+  }).join('');
+  el.innerHTML = '<table class="qtable"><thead><tr>'
+    + '<th>月份</th><th>篇数</th><th>词数</th><th>用时</th><th>平均速度</th><th>打卡天数</th><th>篇数环比</th>'
+    + '</tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
 /* ---------- 近 8 周学习趋势 ---------- */
 function renderTrend(){
   const weeks = [];
@@ -1307,8 +1599,8 @@ function renderScores(){
 }
 function addScore(){
   const date = $('#scDate').value;
-  const total = +$('#scTotal').value;
-  if (!date || !total){ toast('请填写考试日期和总分'); return; }
+  const total = Math.round(+$('#scTotal').value);
+  if (!date || !total || total < 0 || total > 710){ toast('请填写考试日期和有效总分（1-710）'); return; }
   if (scores.some(s=> s.date === date)){
     if (!confirm('该日期已有成绩记录，再添加一条吗？')) return;
   }
@@ -1325,10 +1617,6 @@ function addScore(){
 }
 
 /* ---------- 覆盖矩阵 ---------- */
-function ymKey(s){
-  const m = String(s).match(/(\d{4})\s*年\s*(\d{1,2})\s*月/);
-  return m ? (+m[1]) * 12 + (+m[2]) : -1;
-}
 function renderMatrix(){
   const el = $('#matrix');
   if (!records.length){
@@ -1628,6 +1916,7 @@ function askImportChoice(info, cb){
     + '<b style="color:#b3541e">覆盖导入</b>会先清空现有的全部打卡记录、生词与成绩，且无法恢复，请确认已有备份。';
   importChoiceCb = cb;
   $('#importPick').hidden = false;
+  $('#btnImportMerge').focus();
 }
 function closeImportPick(mode){
   const cb = importChoiceCb;
@@ -1639,68 +1928,6 @@ function closeImportPick(mode){
 /* ================= 批量粘贴导入 ================= */
 let bulkParsed = [];
 
-function blankItem(){
-  return { exam:'', set:'', part:'', type:'', level:'', words:null, date:null, ok:false, dup:false };
-}
-function guessType(s){
-  if (s.includes('听力')) return '听力';
-  if (s.includes('四选一') || s.includes('阅读理解')) return '阅读理解（四选一）';
-  if (s.includes('选词填空') || s.includes('完形填空')) return '完形填空（选词填空）';
-  if (s.includes('段落匹配') || s.includes('长篇') || s.includes('信息匹配')) return '长篇阅读（段落匹配）';
-  if (s.includes('翻译')) return '翻译';
-  if (s.includes('写作')) return '写作';
-  return '';
-}
-function parseBulkText(text){
-  const lines = String(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-  const items = [];
-  let cur = null;
-  let pendingDate = null;   // 独立日期行（如 2026-06-15）= 紧随其后的记录的打卡日期
-  for (let i=0; i<lines.length; i++){
-    const line = lines[i];
-    const dm = line.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
-    if (dm){                       // 注意：不带「年月」字样，不会与考试年月行混淆
-      // 只记 pendingDate、不关闭当前组：组间时日期随下一个年月行生效（与组前写法语义一致），
-      // 写在最后一组之后时由下方循环结束处的回填逻辑生效
-      pendingDate = normDateStr(dm[1] + '-' + dm[2] + '-' + dm[3]);
-      continue;
-    }
-    const ym = line.match(/(\d{4})\s*年\s*(\d{1,2})\s*月/);
-    if (ym){                       // 考试年月行 = 新记录开始
-      if (cur && (cur.exam || cur.part)) items.push(cur);
-      cur = blankItem();
-      cur.date = pendingDate; pendingDate = null;
-      cur.exam = ym[1] + '年' + ym[2] + '月';
-      const sm = line.match(/第\s*(\d+)\s*套/);
-      if (sm) cur.set = sm[1];
-      continue;
-    }
-    if (!cur) continue;            // 组外内容（序号、空行等）忽略
-    if (/^Part\s/i.test(line) && !cur.part){ cur.part = line.replace(/\s+/g,' '); continue; }
-    if (!cur.type){
-      const t = guessType(line);
-      if (t){ cur.type = t; continue; }
-    }
-    if (!cur.level && /^[BC][12]$/i.test(line)){ cur.level = line.toUpperCase(); continue; }
-    if (/^\d+$/.test(line)){
-      // 下一行若为「年月」行，说明这是下一组的序号而非词数
-      const next = lines[i+1] || '';
-      const nextIsExam = /(\d{4})\s*年\s*(\d{1,2})\s*月/.test(next);
-      if (!nextIsExam && cur.words == null) cur.words = +line;
-      continue;
-    }
-    // 其余行（原文精读/精读/未知内容）忽略
-  }
-  if (cur && (cur.exam || cur.part)){
-    if (!cur.date && pendingDate) cur.date = pendingDate;   // 日期行写在最后一组之后时同样生效
-    items.push(cur);
-  }
-  items.forEach(it=>{
-    it.ok = !!(it.exam || it.part);
-    it.dup = it.ok && records.some(r=>articleKey(r)===articleKey(it));
-  });
-  return items;
-}
 function openBulk(){
   $('#formCard').hidden = true;
   $('#bulkCard').hidden = false;
@@ -1766,36 +1993,6 @@ function confirmBulk(){
 }
 
 /* ================= 复习提醒 ================= */
-function addDays(dateStr, n){
-  const d = parseD(dateStr);
-  d.setDate(d.getDate() + n);
-  return fmtD(d);
-}
-function reviewInfo(){
-  const map = {};
-  records.forEach(r=>{
-    const k = articleKey(r);
-    if (!map[k]) map[k] = [];
-    map[k].push(r.date);
-  });
-  const today = todayStr();
-  const due = [];
-  Object.entries(map).forEach(([k, dates])=>{
-    if (dates.length >= 4) return;            // 读满 4 遍视为已掌握
-    dates.sort();
-    const last = dates[dates.length - 1];
-    const interval = [7, 14, 30][dates.length - 1];
-    if (addDays(last, interval) > today) return;
-    const sample = records.find(r=>articleKey(r)===k);
-    due.push({
-      key: k, last, stage: dates.length,
-      days: Math.round((parseD(today) - parseD(last)) / 86400000),
-      sample,
-    });
-  });
-  due.sort((a,b)=> b.days - a.days);
-  return due;
-}
 function renderReview(){
   const due = reviewInfo();
   const card = $('#reviewCard');
@@ -1813,12 +2010,6 @@ function renderReview(){
 }
 
 /* ================= 生词本 ================= */
-function isWordDue(w){
-  if (w.box >= 4) return false;
-  if (!w.lastReviewAt) return true;
-  return Date.now() - w.lastReviewAt >= W_INT[Math.min(w.box, 3)] * 86400000;
-}
-function wordDueCount(){ return words.filter(isWordDue).length; }
 function addWord(){
   const word = $('#wWord').value.trim();
   const meaning = $('#wMeaning').value.trim();
@@ -2502,7 +2693,7 @@ function bind(){
       return;
     }
     if (inField || e.ctrlKey || e.altKey || e.metaKey) return;
-    if (e.key === '?' || (e.shiftKey && e.key === '/')){ $('#kbdHelp').hidden = false; e.preventDefault(); return; }
+    if (e.key === '?' || (e.shiftKey && e.key === '/')){ $('#kbdHelp').hidden = false; $('#btnKbdClose').focus(); e.preventDefault(); return; }
     if (e.key === 'n' || e.key === 'N'){
       if (ui.tab !== 'today') switchTab('today');
       openForm(null);
@@ -2537,6 +2728,15 @@ function bind(){
 
   // 历史筛选
   $('#fq').addEventListener('input', e=>{ ui.filter.q = e.target.value; renderHistory(); });
+  // 历史加载更多（点击 / 键盘；滚近底部由 IntersectionObserver 自动续载）
+  $('#historyList').addEventListener('click', e=>{
+    if (e.target.closest('#historySentinel')){ histShown += HISTORY_BATCH; renderHistory(); }
+  });
+  $('#historyList').addEventListener('keydown', e=>{
+    if ((e.key==='Enter' || e.key===' ') && e.target.id==='historySentinel'){
+      e.preventDefault(); histShown += HISTORY_BATCH; renderHistory();
+    }
+  });
   $('#fTypeFilter').addEventListener('change', e=>{ ui.filter.type = e.target.value; renderHistory(); });
   $('#fLevelFilter').addEventListener('change', e=>{ ui.filter.level = e.target.value; renderHistory(); });
   $('#fGenreFilter').addEventListener('change', e=>{ ui.filter.genre = e.target.value; renderHistory(); });
@@ -2805,6 +3005,7 @@ function init(){
   $('#sExam').value = settings.examDate || '';
   applyTheme();
   bind();
+  ensureHistObserver();
   renderAll();
   autoBackupInit();
   if (corruptKeys.length){

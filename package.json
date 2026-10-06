@@ -1,0 +1,15 @@
+{
+  "name": "cet6-reading-log",
+  "version": "1.8.0",
+  "private": true,
+  "description": "真题阅读打卡：单文件离线应用（package.json 仅用于测试与工程脚本，应用本身零依赖）",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "core:check": "node scripts/extract-core.mjs"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}

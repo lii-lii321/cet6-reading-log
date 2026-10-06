@@ -27,6 +27,12 @@ jobs:
           EOF
           node --check /tmp/app.js
 
+      - name: Unit tests (CORE pure functions)
+        run: |
+          node scripts/extract-core.mjs
+          npm ci
+          npm test
+
       - name: Validate manifest & sw.js
         run: |
           node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8')); console.log('manifest ok')"
