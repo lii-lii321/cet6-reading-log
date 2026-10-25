@@ -27,7 +27,8 @@ export function loadCore({ records = [], words = [] } = {}){
     '\n;return { esc, pad2, fmtD, todayStr, parseD, dateCN, dateCNFull, wdCN,' +
     ' normDateStr, numOrNull, normalizeRecord, normalizeWord, normalizeScore, genId,' +
     ' sortedRecords, recordsOf, uniqueArticleCount, articleKey, totalWords, streak, activeDays,' +
-    ' addDays, reviewInfo, isWordDue, wordDueCount, ymKey, blankItem, guessType, parseBulkText };');
+    ' addDays, reviewInfo, isWordDue, wordDueCount, ymKey, blankItem, guessType, parseBulkText,' +
+    ' PROG_GENRES, normalizeProgress, mergeProgress, clampProgress };');
   return factory(records, words);
 }
 

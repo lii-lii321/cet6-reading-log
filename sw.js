@@ -1,5 +1,5 @@
 /* 真题阅读打卡 Service Worker：离线缓存 */
-const CACHE = 'readinglog-v3';
+const CACHE = 'readinglog-v4';
 const ASSETS = [
   './',
   './index.html',

@@ -197,6 +197,20 @@
   }
   .review-item .ri-main{flex:1;min-width:0;}
   .review-item .ri-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  /* ===== 续读进度 ===== */
+  .prog-row{
+    display:flex;align-items:center;gap:12px;padding:9px 2px;flex-wrap:wrap;
+    border-bottom:1px dashed var(--border);
+  }
+  .prog-row:last-child{border-bottom:none;}
+  .pg-name{font-weight:700;font-size:14px;flex:0 0 60px;}
+  .pg-next{font-size:13px;color:var(--muted);flex:1;min-width:180px;display:flex;align-items:center;gap:6px;}
+  .pg-num{
+    width:66px;border:1px solid var(--border);border-radius:8px;padding:4px 6px;
+    font-family:inherit;font-size:13.5px;background:var(--field);color:var(--text);text-align:center;
+  }
+  .pg-num:focus{outline:2px solid #f5c9ae;border-color:var(--primary);}
+  .pg-ops{display:flex;gap:6px;flex:0 0 auto;}
   /* ===== 本周小结 ===== */
   .wk{display:flex;gap:10px;}
   .wk-item{flex:1;text-align:center;background:var(--field);border:1px solid var(--border);border-radius:10px;padding:13px 6px;}
@@ -397,6 +411,11 @@
         <button class="btn primary" id="btnAdd">＋ 记录一篇</button>
         <button class="btn" id="btnBulk">📋 批量粘贴导入</button>
       </div>
+    </div>
+
+    <div class="card" id="progCard">
+      <h3 class="card-title">📌 续读进度 <span class="muted" style="font-size:12px;font-weight:400">· 记住每个体裁读到哪了，下次直接接着读；「去记录」会预填体裁，保存后自动 +1</span></h3>
+      <div id="progList"></div>
     </div>
 
     <div class="card" id="formCard" hidden>
@@ -738,7 +757,7 @@
     <div class="card">
       <h3 class="card-title">关于</h3>
       <div class="muted" style="line-height:2;font-size:13px">
-        真题阅读打卡 <b>v<!--VER-->1.8.0<!--/VER--></b> · 本地小工具，完全离线使用，数据不上传。<br>
+        真题阅读打卡 <b>v<!--VER-->1.8.1<!--/VER--></b> · 本地小工具，完全离线使用，数据不上传。<br>
         线上版（可安装为桌面 / 手机应用）：<a href="https://lii-lii321.github.io/cet6-reading-log/" target="_blank" style="color:var(--accent-ink)">lii-lii321.github.io/cet6-reading-log</a><br>
         安装方法：用 Edge / Chrome 打开线上版，点地址栏右侧的「安装」图标即可；不同设备数据独立，换设备时用备份文件迁移。<br>
         快捷键：按 <kbd>?</kbd> 查看。
@@ -798,7 +817,8 @@ const LS_FORM = 'readinglog_formctx_v1';
 const LS_WORD = 'readinglog_words_v1';
 const LS_TRASH = 'readinglog_trash_v1';
 const LS_SCORE = 'readinglog_scores_v1';
-const APP_VERSION = '1.8.0';
+const LS_PROG = 'readinglog_progress_v1';
+const APP_VERSION = '1.8.1';
 const SCHEMA_VERSION = 2;
 
 const LIB_PRESETS = {
@@ -814,6 +834,8 @@ let records = [];
 let words = [];
 let trash = [];
 let scores = [];
+let progress = {};        // 各体裁续读进度：{ 议论文: 38 } = 下次从第 38 篇开始
+let progArmed = null;     // 点「去记录」后记住体裁，保存成功且体裁一致时自动 +1
 let corruptKeys = [];
 let settings = { goal: 2, total: 593, libName: '六级真题' };
 let formCtx = null;
@@ -897,6 +919,32 @@ function normalizeScore(s){
   if (!Number.isFinite(total) || total <= 0) return null;
   const sub = v => { const n = Math.round(+v); return Number.isFinite(n) && n > 0 ? n : null; };
   return { date, total, listen: sub(s.listen), read: sub(s.read), write: sub(s.write) };
+}
+
+/* ---------- 各体裁续读进度（纯函数）：对应懒笔记目录的 5 个体裁列表 ---------- */
+const PROG_GENRES = ['议论文','说明文','对话','新闻报道','记叙文'];
+const PROG_MAX = 99999;
+function normalizeProgress(p){
+  const out = {};
+  if (!p || typeof p !== 'object') return out;
+  PROG_GENRES.forEach(g=>{
+    const n = Math.round(+p[g]);
+    if (Number.isFinite(n) && n >= 1 && n <= PROG_MAX) out[g] = n;
+  });
+  return out;
+}
+function mergeProgress(a, b){
+  const src = normalizeProgress(b);
+  const out = Object.assign({}, normalizeProgress(a));
+  PROG_GENRES.forEach(g=>{
+    if (src[g] && src[g] > (out[g] || 0)) out[g] = src[g];
+  });
+  return out;
+}
+function clampProgress(n){
+  const v = Math.round(+n);
+  if (!Number.isFinite(v) || v < 1) return 1;
+  return Math.min(v, PROG_MAX);
 }
 
 function genId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
@@ -1070,6 +1118,7 @@ function load(){
     if (scores.length !== sc.length) console.warn('已忽略 ' + (sc.length - scores.length) + ' 条字段无效的成绩');
   }
   scores.sort((a,b)=> b.date.localeCompare(a.date));
+  progress = normalizeProgress(safeParse(LS_PROG, {}));
   // 回收站 30 天自动清理
   const cutoff = Date.now() - 30*86400000;
   const kept = trash.filter(x=> x.deletedAt > cutoff);
@@ -1098,6 +1147,7 @@ function save(){
     localStorage.setItem(LS_WORD, JSON.stringify(words));
     localStorage.setItem(LS_TRASH, JSON.stringify(trash));
     localStorage.setItem(LS_SCORE, JSON.stringify(scores));
+    localStorage.setItem(LS_PROG, JSON.stringify(progress));
     localStorage.setItem(LS_SET, JSON.stringify(settings));
   }catch(e){
     toast('⚠️ 本地存储写入失败（可能已满），请导出备份并清理已掌握生词');
@@ -1117,6 +1167,7 @@ function saveFormCtx(){
 /* ================= 渲染 ================= */
 function renderAll(){
   renderHero();
+  renderProgress();
   renderExamBar();
   renderTaskList();
   renderBackupBanner();
@@ -1146,6 +1197,25 @@ function renderHero(){
   $('#totalPct').textContent = (tpct >= 10 ? tpct.toFixed(1) : tpct.toFixed(2)) + '%';
   $('#totalBar').style.width = tpct + '%';
   $('#totalSub').textContent = '已打卡 ' + uniq + ' 篇不同文章 / 共 ' + settings.total + ' 篇（累计打卡 ' + records.length + ' 次）';
+}
+
+/* ---------- 续读进度：每个体裁下次从第几篇接着读 ---------- */
+function renderProgress(){
+  const el = $('#progList');
+  if (!el) return;
+  el.innerHTML = PROG_GENRES.map(g=>{
+    const n = progress[g] || 1;
+    return '<div class="prog-row" data-genre="' + esc(g) + '">'
+      + '<span class="pg-name">' + esc(g) + '</span>'
+      + '<span class="pg-next">下次从第 '
+      + '<input type="number" class="pg-num" min="1" step="1" value="' + n + '" aria-label="' + esc(g) + '：下次开始阅读的篇数"> 篇开始'
+      + '</span>'
+      + '<span class="pg-ops">'
+      + '<button class="btn sm" data-pact="dec" aria-label="' + esc(g) + '：篇数减 1">−1</button>'
+      + '<button class="btn sm" data-pact="inc" aria-label="' + esc(g) + '：篇数加 1">+1</button>'
+      + '<button class="btn sm primary" data-pact="go">去记录</button>'
+      + '</span></div>';
+  }).join('');
 }
 
 function recCardHTML(r){
@@ -1705,6 +1775,7 @@ function openForm(record){
   $('#bulkCard').hidden = true;
   f.hidden = false;
   if (record){
+    progArmed = null;   // 编辑已有记录不走续读联动
     ui.editingId = record.id;
     $('#formTitle').textContent = '编辑记录';
     $('#fDate').value = record.date;
@@ -1745,6 +1816,7 @@ function openForm(record){
 function closeForm(){
   $('#formCard').hidden = true;
   ui.editingId = null;
+  progArmed = null;
 }
 function collectForm(){
   return {
@@ -1777,16 +1849,29 @@ function submitForm(keepOpen){
     toast('已保存修改');
     closeForm();
   } else {
+    // 「去记录」带来的续读联动：保存的体裁与点按钮时一致才推进，避免误加；
+    // 「保存并再来一篇」连续记录同一体裁时保持联动，直到保存关闭或换了体裁。
+    // 推进必须在 save() 之前完成，否则最后一次 +1 不会写入 localStorage
+    let armedMsg = '';
+    if (progArmed){
+      if (data.genre === progArmed){
+        progress[progArmed] = clampProgress((progress[progArmed] || 1) + 1);
+        armedMsg = ' ·「' + progArmed + '」下次从第 ' + progress[progArmed] + ' 篇开始';
+        if (!keepOpen) progArmed = null;
+      } else {
+        progArmed = null;
+      }
+    }
     records.push(Object.assign({ id: genId(), createdAt: new Date().toISOString() }, data));
     saveFormCtx(); save();
     if (keepOpen){
       $('#fPart').value = ''; $('#fWords').value = ''; $('#fTitle').value = ''; $('#fNote').value = '';
       $('#fNewWords').value = ''; $('#fWrong').value = ''; $('#fMinutes').value = '';
       $('#fDate').value = todayStr();
-      toast('已保存 ✓ 继续记录下一篇');
+      toast('已保存 ✓ 继续记录下一篇' + armedMsg);
       $('#fPart').focus();
     } else {
-      toast('已保存 ✓');
+      toast('已保存 ✓' + armedMsg);
       closeForm();
     }
   }
@@ -1804,7 +1889,7 @@ function buildBackupPayload(){
   return {
     app: '真题阅读打卡', version: SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
-    settings, records, words, scores,
+    settings, records, words, scores, progress,
   };
 }
 function exportData(){
@@ -1857,6 +1942,9 @@ function applyImport(data, incoming, incomingWords, incomingScores, mode, badCou
     // 覆盖语义：无条件清空现有全部数据（含备份中为空的生词/成绩）
     records = []; words = []; scores = [];
   }
+  // 续读进度：合并取两边较大值（读到更靠后为准）；覆盖则整体替换（旧备份无此字段时重置）
+  const incomingProgress = normalizeProgress(data.progress);
+  progress = merge ? mergeProgress(progress, incomingProgress) : incomingProgress;
   let added = 0;
   const existIds = new Set(records.map(r=>r.id));
   incoming.forEach(r=>{
@@ -1914,6 +2002,7 @@ function askImportChoice(info, cb){
     + (info.wordCount ? '、' + info.wordCount + ' 个生词' : '')
     + '；当前已有 ' + info.curRecords + ' 条打卡记录。<br>'
     + '<b style="color:#b3541e">覆盖导入</b>会先清空现有的全部打卡记录、生词与成绩，且无法恢复，请确认已有备份。';
+  // （覆盖导入同时会整体替换「续读进度」，此处与 confirm 文案一并如实说明）
   importChoiceCb = cb;
   $('#importPick').hidden = false;
   $('#btnImportMerge').focus();
@@ -1930,6 +2019,7 @@ let bulkParsed = [];
 
 function openBulk(){
   $('#formCard').hidden = true;
+  progArmed = null;
   $('#bulkCard').hidden = false;
   $('#bulkDate').value = todayStr();
   $('#bulkGenre').innerHTML = '<option value="">—</option>' + GENRES.map(g=>'<option>'+g+'</option>').join('');
@@ -2742,6 +2832,33 @@ function bind(){
   $('#fGenreFilter').addEventListener('change', e=>{ ui.filter.genre = e.target.value; renderHistory(); });
   $('#fYmFilter').addEventListener('change', e=>{ ui.filter.ym = e.target.value; renderHistory(); });
 
+  // 续读进度：± 调整、直接输入、去记录（预填体裁 + 保存后自动 +1）
+  $('#progList').addEventListener('click', e=>{
+    const btn = e.target.closest('button[data-pact]');
+    if (!btn) return;
+    const row = e.target.closest('.prog-row');
+    if (!row) return;
+    const g = row.dataset.genre;
+    if (btn.dataset.pact === 'go'){
+      progArmed = g;
+      openForm(null);
+      $('#fGenre').value = g;
+      window.scrollTo({top:0});
+      $('#fPart').focus();
+      toast('已预填体裁「' + g + '」，读完这篇保存后进度自动 +1');
+      return;
+    }
+    progress[g] = clampProgress((progress[g] || 1) + (btn.dataset.pact === 'inc' ? 1 : -1));
+    save(); renderProgress();
+  });
+  $('#progList').addEventListener('change', e=>{
+    if (!e.target.classList.contains('pg-num')) return;
+    const row = e.target.closest('.prog-row');
+    if (!row) return;
+    progress[row.dataset.genre] = clampProgress(e.target.value);
+    save(); renderProgress();
+  });
+
   // 复习提醒：一键记录重读
   $('#reviewList').addEventListener('click', e=>{
     const btn = e.target.closest('button[data-act="reread"]');
@@ -2949,7 +3066,7 @@ function bind(){
   });
   $('#btnImportMerge').addEventListener('click', ()=>closeImportPick('merge'));
   $('#btnImportOverwrite').addEventListener('click', ()=>{
-    if (confirm('覆盖操作会先删除现有的全部数据（打卡记录、生词、成绩），且无法恢复。\n确定要覆盖吗？')){
+    if (confirm('覆盖操作会先删除现有的全部数据（打卡记录、生词、成绩、续读进度），并替换为备份文件中的内容，且无法恢复。\n确定要覆盖吗？')){
       closeImportPick('overwrite');
     }
   });

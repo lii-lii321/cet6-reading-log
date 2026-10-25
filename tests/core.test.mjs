@@ -7,7 +7,8 @@ import { loadCore } from '../scripts/extract-core.mjs';
 const DAY = 86400000;
 const base = loadCore();
 const { normDateStr, numOrNull, normalizeRecord, normalizeWord, normalizeScore,
-        esc, addDays, articleKey, guessType, parseD, fmtD, isWordDue } = base;
+        esc, addDays, articleKey, guessType, parseD, fmtD, isWordDue,
+        PROG_GENRES, normalizeProgress, mergeProgress, clampProgress } = base;
 
 function daysAgoStr(n){
   const d = new Date();
@@ -296,5 +297,50 @@ describe('题型识别 guessType', () => {
 describe('日期工具', () => {
   it('parseD / fmtD 往返一致', () => {
     expect(fmtD(parseD('2026-10-06'))).toBe('2026-10-06');
+  });
+});
+
+describe('续读进度 normalizeProgress', () => {
+  it('合法值保留，缺省体裁不补键', () => {
+    expect(normalizeProgress({ '议论文': 38, '说明文': '7.6' })).toEqual({ '议论文': 38, '说明文': 8 });
+    expect(normalizeProgress({})).toEqual({});
+    expect(normalizeProgress(null)).toEqual({});
+  });
+  it('未知体裁、非正数与超界值一律丢弃', () => {
+    expect(normalizeProgress({ '科幻': 5 })).toEqual({});
+    expect(normalizeProgress({ '议论文': 0, '说明文': -3, '对话': 'abc', '新闻报道': 100000 })).toEqual({});
+    expect(normalizeProgress({ '记叙文': 99999, '议论文': 100000 })).toEqual({ '记叙文': 99999 });
+  });
+  it('白名单为 5 个体裁，不含「其他」', () => {
+    expect(PROG_GENRES).toEqual(['议论文','说明文','对话','新闻报道','记叙文']);
+  });
+});
+
+describe('续读进度 mergeProgress', () => {
+  it('同体裁取较大值（读到更靠后为准）', () => {
+    expect(mergeProgress({ '议论文': 38 }, { '议论文': 40, '说明文': 3 }))
+      .toEqual({ '议论文': 40, '说明文': 3 });
+    expect(mergeProgress({ '议论文': 42 }, { '议论文': 40 }))
+      .toEqual({ '议论文': 42 });
+  });
+  it('两侧都有的键取 max，非法值不覆盖', () => {
+    expect(mergeProgress({ '对话': 10 }, { '对话': undefined, '记叙文': 2 }))
+      .toEqual({ '对话': 10, '记叙文': 2 });
+    expect(mergeProgress({}, null)).toEqual({});
+  });
+});
+
+describe('续读进度 clampProgress', () => {
+  it('非法输入归 1', () => {
+    expect(clampProgress('abc')).toBe(1);
+    expect(clampProgress(0)).toBe(1);
+    expect(clampProgress(-5)).toBe(1);
+    expect(clampProgress(NaN)).toBe(1);
+    expect(clampProgress(null)).toBe(1);
+  });
+  it('小数四舍五入，超界收敛到 99999', () => {
+    expect(clampProgress('7.4')).toBe(7);
+    expect(clampProgress(100000)).toBe(99999);
+    expect(clampProgress(38)).toBe(38);
   });
 });
